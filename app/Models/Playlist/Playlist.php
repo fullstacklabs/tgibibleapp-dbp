@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
 use App\Models\User\User;
+use App\Relations\EmptyRelation;
 
 /**
  * App\Models\Playlist
@@ -170,6 +171,11 @@ class Playlist extends Model
 
     public function items()
     {
-        return $this->hasMany(PlaylistItems::class)->orderBy('order_column');
+        $content_config = config('services.content');
+        if (empty($content_config['url'])) {
+            return $this->hasMany(PlaylistItems::class)->orderBy('order_column');
+        } else {
+            return new EmptyRelation();
+        }
     }
 }
