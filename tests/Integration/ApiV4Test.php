@@ -19,6 +19,7 @@ class ApiV4Test extends TestCase
     protected function setUp():void
     {
         parent::setUp();
+        // insert into user_keys (name,user_id,`key`) values ('test-key',1,'phpunitTestKey');
         $this->key    = Key::where('name', 'test-key')->first()->key;
         $this->params = ['v' => 4, 'key' => $this->key, 'pretty'];
 

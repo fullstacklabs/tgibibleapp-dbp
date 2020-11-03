@@ -36,6 +36,7 @@ Route::name('v4_filesets.podcast')->get('bibles/filesets/{fileset_id}/podcast', 
 Route::name('v4_filesets.download')->get('bibles/filesets/{fileset_id}/download',  'Bible\BibleFileSetsController@download');
 Route::name('v4_filesets.copyright')->get('bibles/filesets/{fileset_id}/copyright', 'Bible\BibleFileSetsController@copyright');
 Route::name('v4_filesets.show')->get('bibles/filesets/{fileset_id?}',              'Bible\BibleFileSetsController@show');
+Route::name('v4_filesets.showFeatured')->get('bibles/filesets/{fileset_id}/verses',              'Bible\BibleFileSetsController@showFeatured');
 Route::name('v4_filesets.showMultiple')->get('bibles/filesets/{fileset_id?}/playlist',              'Bible\BibleFileSetsController@getPlaylistMeta');
 Route::name('v4_filesets.update')->put('bibles/filesets/{fileset_id}',             'User\Dashboard\BibleFilesetsManagementController@update');
 Route::name('v4_filesets.store')->post('bibles/filesets',             'User\Dashboard\BibleFilesetsManagementController@store');
@@ -225,3 +226,25 @@ Route::name('v4_push_tokens.store')
     ->middleware('APIToken:check')->post('push_notifications',                      'User\PushTokensController@store');
 Route::name('v4_push_tokens.destroy')
     ->middleware('APIToken:check')->delete('push_notifications/{token}',            'User\PushTokensController@destroy');
+
+
+// VERSION 4 | Collections
+Route::name('v4_collections.index')
+    ->middleware('APIToken')->get('collections',                                          'Collection\CollectionsController@index');
+Route::name('v4_collections.store')
+    ->middleware('APIToken:check')->post('collections',                                   'Collection\CollectionsController@store');
+Route::name('v4_collections.show')
+    ->middleware('APIToken')->get('collections/{collection_id}',                                'Collection\CollectionsController@show');
+Route::name('v4_collections.playlists')
+    ->middleware('APIToken')->get('collections/{collection_id}/playlists',                                'Collection\CollectionsController@getPlaylists');
+Route::name('v4_collections.update')
+    ->middleware('APIToken:check')->put('collections/{collection_id}',                          'Collection\CollectionsController@update');
+Route::name('v4_collections.destroy')
+    ->middleware('APIToken:check')->delete('collections/{collection_id}',                       'Collection\CollectionsController@destroy');
+
+Route::name('v4_collection_playlists.store')
+    ->middleware('APIToken:check')->post('collections/{collection_id}/playlists',               'Collection\CollectionsController@storePlaylist');
+Route::name('v4_collection_playlists.update')
+    ->middleware('APIToken:check')->post('collections/{collection_id}/playlists/{playlist_id}',             'Collection\CollectionsController@updatePlaylist');
+Route::name('v4_collection_playlists.destroy')
+    ->middleware('APIToken:check')->delete('collections/{collection_id}/playlists/{playlist_id}',             'Collection\CollectionsController@destroyPlaylist');

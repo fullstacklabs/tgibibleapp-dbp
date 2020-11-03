@@ -74,11 +74,15 @@ return [
         'url' => env('ARCLIGHT_API_URL', 'https://api.arclight.org/v2/')
     ],
 
+    'content' => [
+        'url' => env('CONTENT_URL'),
+        'key' => env('CONTENT_KEY')
+    ],
+
     // Testing
 
     'loaderIo' => [
         'key' => env('LOADER_IO')
     ]
-
 
 ];

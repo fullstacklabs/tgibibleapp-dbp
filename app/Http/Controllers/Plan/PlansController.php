@@ -89,7 +89,6 @@ class PlansController extends APIController
     public function index(Request $request)
     {
         $user = $request->user();
-
         // Validate Project / User Connection
         if (!empty($user) && !$this->compareProjects($user->id, $this->key)) {
             return $this->setStatusCode(401)->replyWithError(trans('api.projects_users_not_connected'));
@@ -194,26 +193,33 @@ class PlansController extends APIController
                 'user_id' => $user->id
             ];
         }
+        // create playlists
         Playlist::insert($data);
+        // get created playlist IDs
         $new_playlists = Playlist::select(['id'])
             ->where('name', 'plan_' . $plan->id)
             ->where('plan_id', $plan->id)
             ->where('user_id', $user->id)
             ->get()->pluck('id');
+        // get plan_id & playlist_id from create playlists
         $plan_days_data = $new_playlists->map(function ($item) use ($plan) {
             return [
                 'plan_id'               => $plan->id,
                 'playlist_id'           => $item,
             ];
         })->toArray();
+        // update name of all created playlists to ''
         Playlist::whereIn('id', $new_playlists)->update(['name' => '', 'updated_at' => 'created_at']);
+        // create plan days
         PlanDay::insert($plan_days_data);
 
+        // associated plan with user
         UserPlan::create([
             'user_id'               => $user->id,
             'plan_id'               => $plan->id
         ]);
 
+        // get final object
         $plan = $this->getPlan($plan->id, $user);
         return $this->reply($plan);
     }

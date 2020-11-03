@@ -128,6 +128,22 @@ class BibleFileSetsController extends APIController
         return $this->reply($fileset_chapters, [], $transaction_id ?? '');
     }
 
+    public function showFeatured($id = null, $asset_id = null, $set_type_code = null, $cache_key = 'bible_filesets_show2')
+    {
+        // get fileset
+        $fileset = BibleFileset::where('id', $id)->first();
+        // load text_plain for this bible
+        $text_fileset = $fileset->bible->first()->filesets->where('set_type_code', 'text_plain')->first();
+        // back up hash_id
+        $hash_id = $text_fileset->hash_id;
+        // copy text_fileset
+        $text_fileset_copy = json_decode(json_encode($text_fileset));
+        // expose hash_id
+        $text_fileset_copy->hash_id = $hash_id;
+        // return text_plain for this bible including hash_id
+        return $this->reply($text_fileset_copy, [], '');
+    }
+  
     public function getPlaylistMeta($id = null, $asset_id = null, $set_type_code = null, $cache_key = 'bible_filesets_show2')
     {
         // laravel pass array from route to controller

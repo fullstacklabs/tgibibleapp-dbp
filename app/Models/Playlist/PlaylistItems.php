@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
+use GuzzleHttp\Client;
 
 /**
  * App\Models\Playlist
@@ -335,13 +336,30 @@ class PlaylistItems extends Model implements Sortable
     {
         if ($text_filesets) {
             $text_fileset = $text_filesets[$this['fileset_id']][0] ?? null;
+            $hash_id = $text_fileset->hash_id;
         } else {
-            $fileset = BibleFileset::where('id', $this['fileset_id'])->first();
-            $text_fileset = $fileset->bible->first()->filesets->where('set_type_code', 'text_plain')->first();
+            $config = config('services.content');
+            // if configured to use content server
+            if (!empty($config['url'])) {
+
+              $fileset_id = $this['fileset_id'];
+              $cache_params = [$fileset_id];
+              $text_fileset = cacheRemember('playlist_item_fileset_content_verses', $cache_params, now()->addDay(), function () use ($fileset_id, $config) {
+                  $client = new Client();
+                  $res = $client->get($config['url'] . 'bibles/filesets/'.
+                    $fileset_id.'/verses?v=4&key=' . $config['key']);
+                  return collect(json_decode($res->getBody() . ''));
+              });
+              $hash_id = $text_fileset['hash_id'];
+            } else {
+              $fileset = BibleFileset::where('id', $this['fileset_id'])->first();
+              $text_fileset = $fileset->bible->first()->filesets->where('set_type_code', 'text_plain')->first();
+              $hash_id = $text_fileset->hash_id;
+            }
         }
 
         $verses = null;
-        if ($text_fileset) {
+        if ($hash_id) {
             $where = [
                 ['book_id', $this['book_id']],
                 ['chapter', '>=', $this['chapter_start']],
@@ -351,9 +369,9 @@ class PlaylistItems extends Model implements Sortable
                 $where[] = ['verse_start', '>=', $this['verse_start']];
                 $where[] = ['verse_end', '<=', $this['verse_end']];
             }
-            $cache_params = [$text_fileset->hash_id, $this['book_id'], $this['chapter_start'], $this['chapter_end'], $this['verse_start'], $this['verse_end']];
-            $verses =  cacheRemember('playlist_item_text', $cache_params, now()->addDay(), function () use ($text_fileset, $where) {
-                return BibleVerse::where('hash_id', $text_fileset->hash_id)
+            $cache_params = [$hash_id, $this['book_id'], $this['chapter_start'], $this['chapter_end'], $this['verse_start'], $this['verse_end']];
+            $verses = cacheRemember('playlist_item_text', $cache_params, now()->addDay(), function () use ($hash_id, $where) {
+                return BibleVerse::where('hash_id', $hash_id)
                     ->where($where)
                     ->get()->pluck('verse_text');
             });
@@ -400,8 +418,8 @@ class PlaylistItems extends Model implements Sortable
 
                 foreach ($bible_files_ids as $bible_file_id) {
                     $timestamps = DB::connection('dbp')->select('select t.* from bible_file_stream_bandwidths as b
-                    join bible_file_stream_bytes as s 
-                    on s.stream_bandwidth_id = b.id 
+                    join bible_file_stream_bytes as s
+                    on s.stream_bandwidth_id = b.id
                     join bible_file_timestamps as t
                     on t.id = s.timestamp_id
                     where b.bible_file_id = ? and  s.timestamp_id IS NOT NULL', [$bible_file_id]);
