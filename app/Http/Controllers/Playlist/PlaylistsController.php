@@ -852,6 +852,45 @@ class PlaylistsController extends APIController
 
         $show_details = checkBoolean('show_details');
         $bible_id = checkParam('bible_id', true);
+        $audio_fileset_types = collect(['audio_stream', 'audio_drama_stream', 'audio', 'audio_drama']);
+
+        $config = config('services.content');
+        if (empty($config['url'])) {
+            // Local content, bible check
+            $bible = cacheRemember('bible_translate', [$bible_id], now()->addDay(), function () use ($bible_id) {
+                return Bible::whereId($bible_id)->first();
+            });
+
+            if (!$bible) {
+                return $this->setStatusCode(404)->replyWithError('Bible Not Found');
+            }
+
+            $bible_language = $bible->language->name;
+        } else {
+            // Remote content, combined bible/audio check
+
+            $bible_data = cacheRemember('bible_get_audio', [$bible_id], now()->addDay(), function () use ($bible_id, $config) {
+                $client = new Client();
+                $res = $client->get($config['url'] . 'bibles/' . $bible_id .
+                  '?v=4&key=' . $config['key']);
+                $result = json_decode($res->getBody() . '', true);
+                //echo "<pre>", print_r($result['data'], 1), "</pre>\n";
+                $filesets = collect($result['data']['filesets']['dbp-prod']);
+                $bible_audio_filesets = $filesets->filter(function($fileset) {
+                    // keep it if it has audio in the name...
+                    return strpos($fileset['type'], 'audio') !== false;
+                })->map(function($fileset) {
+                  return (object)array(
+                    'id'            => $fileset['id'],
+                    'set_type_code' => $fileset['type'],
+                    'set_size_code' => $fileset['size'],
+                  );
+                });
+                return array('audiofs'=>$bible_audio_filesets, 'lang'=>$result['data']['language']);
+            });
+            $bible_audio_filesets = $bible_data['audiofs'];
+            $bible_language = $bible_data['lang'];
+        }
 
         // get non user tied playlist
         $playlist = $this->getPlaylist(false, $playlist_id);
@@ -1314,8 +1353,6 @@ class PlaylistsController extends APIController
             $fileset_ids = $playlist->items->map(function ($item) {
                 return $item->fileset_id;
             })->unique();
-
-            if ($fileset_ids->count()) {
 
                 // could be more granular (by fileset_id)
                 $filesets_bibles = [];

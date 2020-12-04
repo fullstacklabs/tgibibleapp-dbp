@@ -17,6 +17,7 @@ class UserCollectionsRoutesTest extends ApiV4Test
     {
         // convert key into api_token
         //$path = route('v4_user.login', array_merge(['email'=>'X', 'password'=>'Y'], $this->params));
+        // user_id 1 uses phpunitTestKey
 
         // insert into user_api_tokens (user_id, api_token) values (1, '456542f8a59eac51e895c5ff9f388dc93fa0f0f88fc43e3e3ec16bacf20dafd0');
         return ['api_token'=>'IRSooPKAWU5dUeEVw6W2rQy3o6ursYtbjMGSeLjljcDSUjopSbEXXIBweli7'];
