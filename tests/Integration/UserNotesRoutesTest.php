@@ -2,12 +2,7 @@
 
 namespace Tests\Integration;
 
-use App\Models\User\AccessGroup;
 use App\Models\User\Key;
-use App\Models\User\PasswordReset;
-use App\Models\User\ProjectMember;
-use App\Models\User\ProjectOauthProvider;
-use App\Models\User\User;
 
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Arr;
@@ -36,11 +31,11 @@ class UserNotesRoutesTest extends ApiV4Test
         $notes = $result->data;
         $this->assertEquals(15, count($notes));
         // transformer test / relationship test
-        $this->assertEquals("Romans", $notes[0]->book_name);
+        $this->assertEquals('Romans', $notes[0]->book_name);
         // getBibleNameAttribute test
-        $this->assertEquals("English Standard Version", $notes[0]->bible_name);
+        $this->assertEquals('English Standard Version', $notes[0]->bible_name);
         // getVerseTextAttribute test
-        $this->assertEquals("For the wages of sin is death, but the free gift of God is eternal life in Christ Jesus our Lord.", $notes[0]->verse_text);
+        $this->assertEquals('For the wages of sin is death, but the free gift of God is eternal life in Christ Jesus our Lord.', $notes[0]->verse_text);
         sleep(10);
     }
 
@@ -65,11 +60,11 @@ class UserNotesRoutesTest extends ApiV4Test
         $notes = $result->data;
         $this->assertEquals(1, count($notes));
         // transformer test / relationship test
-        $this->assertEquals("Romans", $notes[0]->book_name);
+        $this->assertEquals('Romans', $notes[0]->book_name);
         // getBibleNameAttribute test
-        $this->assertEquals("English Standard Version", $notes[0]->bible_name);
+        $this->assertEquals('English Standard Version', $notes[0]->bible_name);
         // getVerseTextAttribute test
-        $this->assertEquals("For the wages of sin is death, but the free gift of God is eternal life in Christ Jesus our Lord.", $notes[0]->verse_text);
+        $this->assertEquals('For the wages of sin is death, but the free gift of God is eternal life in Christ Jesus our Lord.', $notes[0]->verse_text);
         sleep(10);
     }
 
@@ -119,9 +114,9 @@ class UserNotesRoutesTest extends ApiV4Test
         // weird no book name here...
         //$this->assertEquals("Romans", $notes['book_name']);
         // getBibleNameAttribute test
-        $this->assertEquals("English Standard Version", $notes['bible_name']);
+        $this->assertEquals('English Standard Version', $notes['bible_name']);
         // getVerseTextAttribute test
-        $this->assertEquals("For the wages of sin is death, but the free gift of God is eternal life in Christ Jesus our Lord.", $notes['verse_text']);
+        $this->assertEquals('For the wages of sin is death, but the free gift of God is eternal life in Christ Jesus our Lord.', $notes['verse_text']);
         sleep(10);
     }
 
@@ -264,5 +259,4 @@ class UserNotesRoutesTest extends ApiV4Test
         $this->assertEquals(true, isset($result['errors'])); // expecting errors field
         $this->assertEquals(true, isset($result['errors']['bible_id'])); // expecting errors.bible_id field
     }
-
 }

@@ -114,7 +114,8 @@ class SyncCollectionsPlaylists extends Command
         return $collRow[0]->id;
     }
 
-    private function ensureCollection($name) {
+    private function ensureCollection($name)
+    {
         // find
         $coll = DB::connection('dbp_users')->table('collections')->where('name', '=', $name)->get();
         if (!$coll->count()) {
@@ -181,12 +182,12 @@ class SyncCollectionsPlaylists extends Command
             return;
         }
         $translated_items = $result->translated_items;
-        foreach($translated_items as $item) {
+        foreach ($translated_items as $item) {
             // before we create it, make sure the fileset_id exists...
             $bible = DB::connection('dbp')->table('bible_filesets')
               ->where('id', '=', $item->fileset_id);
             if (!$bible->count()) {
-                echo "Missing fileset_id[", $item->fileset_id, "]\n";
+                echo 'Missing fileset_id[', $item->fileset_id, "]\n";
             }
         }
 
@@ -207,7 +208,7 @@ class SyncCollectionsPlaylists extends Command
 
     private function locateBook($name)
     {
-        $fixUps = array(
+        $fixUps = [
           '1 Peter'    => '1Pet',
           '2 Peter'    => '2Pet',
           'Hebrews'    => 'Heb',
@@ -217,7 +218,7 @@ class SyncCollectionsPlaylists extends Command
           'Romans'     => 'Rom',
           '2 Timothy'  => '2Tim',
           'Revelation' => 'Rev',
-        );
+        ];
         $noSpaceName = str_replace(' ', '', $name);
         if (isset($fixUps[$name])) {
             $noSpaceName = $fixUps[$name];
@@ -235,7 +236,7 @@ class SyncCollectionsPlaylists extends Command
         // join to make sure it's attached to the associated bible...
         $coll2 = DB::connection('dbp')->table('bible_books')->where('bible_id', '=', $this->bible_id)->where('book_id', '=', $book_id)->get();
         if ($coll2->count() !== 1) {
-            echo "[$book_id] doesn't exist in [", $this->bible_id, "] count[", $coll2->count(), "]\n";
+            echo "[$book_id] doesn't exist in [", $this->bible_id, '] count[', $coll2->count(), "]\n";
             return 0;
         }
         return $book_id;
@@ -255,11 +256,11 @@ class SyncCollectionsPlaylists extends Command
         delete from collection_playlists;
         */
 
-        $collections_eng_path = storage_path("data/201104_CollectionPlaylistVerseMatrix.csv");
+        $collections_eng_path = storage_path('data/201104_CollectionPlaylistVerseMatrix.csv');
         $collections_eng = csvToArray($collections_eng_path);
         $missing = 0;
-        $missingBooks = array();
-        foreach($collections_eng as $row) {
+        $missingBooks = [];
+        foreach ($collections_eng as $row) {
             // Collection, Playlist Title is same in both
 
             // Collection
@@ -272,7 +273,7 @@ class SyncCollectionsPlaylists extends Command
             $book_id = $this->locateBook($row['Book']);
             if (!$book_id) {
                 if (!isset($missingBooks[$row['Book']])) {
-                    echo "Could not locate book[", $row['Book'], "]\n";
+                    echo 'Could not locate book[', $row['Book'], "]\n";
                     $missingBooks[$row['Book']] = 1;
                 }
                 $missing++;
@@ -283,11 +284,13 @@ class SyncCollectionsPlaylists extends Command
         }
         echo "Missing book records[$missing] Unique missing books[", count($missingBooks), "]\n";
 
-        $collections_path = storage_path("data/AllTranslations-ByLanguageCode.csv");
+        $collections_path = storage_path('data/AllTranslations-ByLanguageCode.csv');
         $collections = csvToArray($collections_path);
-        foreach($collections as $row) {
+        foreach ($collections as $row) {
             // only interested in collections
-            if ($row['Grouping Type'] !== 'Collection') continue;
+            if ($row['Grouping Type'] !== 'Collection') {
+                continue;
+            }
 
             $collection_id = $this->ensureCollection($row['Grouping Name']);
             $en_playlist_id = $this->ensurePlaylist($collection_id, $row['English Text to Translate'], 6414);
@@ -297,22 +300,30 @@ class SyncCollectionsPlaylists extends Command
             $lang = $row[$keys[0]]; // just grab the first field...
             // don't need to translate english
             // and skip langs that getLanguage fail on
-            $skip_langs = array('en', 'en-US', 'es-MX', 'fr-CA', 'pt-BR', 'zh_TW');
-            if (in_array($lang, $skip_langs)) continue;
+            $skip_langs = ['en', 'en-US', 'es-MX', 'fr-CA', 'pt-BR', 'zh_TW'];
+            if (in_array($lang, $skip_langs)) {
+                continue;
+            }
 
             $en_title = $row['English Text to Translate'];
             // these ahve no items in playlist
-            $skip_titles = array('Christian Character', 'Help In Time of Need', 'Help With Life\'s Problems');
-            if (in_array($en_title, $skip_titles)) continue;
+            $skip_titles = ['Christian Character', 'Help In Time of Need', 'Help With Life\'s Problems'];
+            if (in_array($en_title, $skip_titles)) {
+                continue;
+            }
 
             $language_id = $this->getLanguage($lang);
             if (!$language_id) {
                 echo "[$collection_id] Can't find [$lang]\n";
                 exit();
             }
-            if ($language_id === 6414) continue; // don't need to translate english
+            if ($language_id === 6414) {
+                continue;
+            } // don't need to translate english
 
-            if ($lang === 'ro') $lang = 'ro-RO'; // fix up
+            if ($lang === 'ro') {
+                $lang = 'ro-RO';
+            } // fix up
             $langBible_id = $this->getDefaultBibleLanguage($lang);
             if (!$langBible_id) {
                 echo "[$collection_id] Can't find default bible for [$lang]\n";

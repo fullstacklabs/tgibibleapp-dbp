@@ -3,7 +3,6 @@
 namespace App\Models\Collection;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Collection\CollectionPlaylist;
 use App\Models\User\User;
 
 /**

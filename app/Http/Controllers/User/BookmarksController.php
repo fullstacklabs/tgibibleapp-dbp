@@ -9,7 +9,6 @@ use App\Traits\CheckProjectMembership;
 use App\Transformers\UserBookmarksTransformer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use App\Services\ContentServiceProvider;
 use League\Fractal\Pagination\IlluminatePaginatorAdapter;
 use App\Traits\AnnotationTags;
 use GuzzleHttp\Client;
@@ -85,7 +84,7 @@ class BookmarksController extends APIController
         $query      = checkParam('query');
 
         $content_config = config('services.content');
-        $book_bible_map = array();
+        $book_bible_map = [];
         if (!empty($content_config['url']) && $query) {
             $client = new Client();
             $res = $client->get($content_config['url'] . 'bibles/book/search/'.
@@ -123,7 +122,7 @@ class BookmarksController extends APIController
         if (!empty($content_config['url']) && $query) {
             // filter by book_id $query filter
             $collection = $bookmarks->getCollection(); // get collections for modification
-            $final_bookmarks = $collection->filter(function($bookmark) use ($book_bible_map) {
+            $final_bookmarks = $collection->filter(function ($bookmark) use ($book_bible_map) {
                 // only include where we have bible_id and book_id in $book_bible_map
                 return in_array($bookmark->book_id, $book_bible_map[$bookmark->bible_id]);
             });
@@ -317,7 +316,7 @@ class BookmarksController extends APIController
             'verse_start' => ((request()->method() === 'POST') ? 'required|' : '') . 'max:177|min:1|integer'
         ]);
         $content_config = config('services.content');
-        $errors = array();
+        $errors = [];
         if (empty($content_config['url'])) {
             $checks['bible_id'] = ((request()->method === 'POST') ? 'required|' : '') . 'exists:dbp.bibles,id';
             $checks['book_id']  = ((request()->method === 'POST') ? 'required|' : '') . 'exists:dbp.books,id';

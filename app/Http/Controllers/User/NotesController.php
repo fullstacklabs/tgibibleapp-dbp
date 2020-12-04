@@ -8,7 +8,6 @@ use App\Transformers\UserNotesTransformer;
 use Illuminate\Http\Request;
 use League\Fractal\Pagination\IlluminatePaginatorAdapter;
 use Validator;
-use App\Services\ContentServiceProvider;
 use App\Traits\CheckProjectMembership;
 use App\Traits\AnnotationTags;
 use GuzzleHttp\Client;
@@ -73,7 +72,7 @@ class NotesController extends APIController
         $query      = checkParam('query');
 
         $content_config = config('services.content');
-        $map = array();
+        $map = [];
         if (!empty($content_config['url']) && $query) {
             $client = new Client();
             $res = $client->get($content_config['url'] . 'bibles/book/search/'.
@@ -111,7 +110,7 @@ class NotesController extends APIController
         if (!empty($content_config['url']) && $query) {
             // filter by book_id $query filter
             $collection = $notes->getCollection(); // get collections for modification
-            $final_notes = $collection->filter(function($note) use ($map) {
+            $final_notes = $collection->filter(function ($note) use ($map) {
                 // only include where we have bible_id and book_id in $map
                 return in_array($note->book_id, $map[$note->bible_id]);
             });
