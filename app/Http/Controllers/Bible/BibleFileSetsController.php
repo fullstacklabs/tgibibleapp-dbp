@@ -184,22 +184,6 @@ class BibleFileSetsController extends APIController
         return $this->reply($fileset_text_info, [], '');
     }
 
-    public function showAudio($id = null)
-    {
-        // laravel pass array from route to controller
-        // https://stackoverflow.com/a/47695952/287696
-        $filesets = explode(',', checkParam('fileset_id', true, $id));
-
-        // lookup filesets and get hashes
-        $filesets_hashes = DB::connection('dbp')
-            ->table('bible_filesets')
-            ->select(['id', 'hash_id', 'set_type_code'])
-            ->whereIn('id', $filesets)->get();
-
-        return $this->reply($filesets_hashes, [], '');
-    }
-
-
     private function processHLSAudio($bible_files)
     {
         $hls_items = [];
