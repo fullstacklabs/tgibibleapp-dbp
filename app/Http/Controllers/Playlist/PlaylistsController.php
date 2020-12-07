@@ -1162,11 +1162,11 @@ class PlaylistsController extends APIController
                 $result = cacheRemember('playlist_item_fileset_audio',
                   [$fileset_id], now()->addDay(),
                   function () use ($fileset_id, $client, $content_config) {
-                    $res = $client->get($content_config['url'] . 'bibles/filesets/'.
+                      $res = $client->get($content_config['url'] . 'bibles/filesets/'.
                       $fileset_id.'/audio?v=4&key=' . $content_config['key']);
-                    $result = json_decode($res->getBody() . '', true);
-                    return $result;
-                });
+                      $result = json_decode($res->getBody() . '', true);
+                      return $result;
+                  });
 
                 // fileset doesn't exist
                 if (!count($result)) {
@@ -1185,12 +1185,12 @@ class PlaylistsController extends APIController
                 $result = cacheRemember('playlist_item_fileset_audio',
                   [$fileset_id, $book_id], now()->addDay(),
                   function () use ($fileset_id, $book_id, $client, $content_config) {
-                    $res = $client->get($content_config['url'] . 'bibles/filesets/'.
+                      $res = $client->get($content_config['url'] . 'bibles/filesets/'.
                       $fileset_id.'/stream/'.$book_id.'?v=4&key=' .
                       $content_config['key']);
-                    $result = json_decode($res->getBody() . '', true);
-                    return $result;
-                });
+                      $result = json_decode($res->getBody() . '', true);
+                      return $result;
+                  });
                 // enabling this will stop file download, and let you view in a browser
                 //echo str_repeat('       ', 2048), "\n";
 
@@ -1199,8 +1199,12 @@ class PlaylistsController extends APIController
                     // consder only if
                     // chapter_start >= item->chapter_start AND
                     // chapter_start <= item->chapter_end
-                    if ($hls_item['chapter_start'] >= $item->chapter_start) return true;
-                    if ($hls_item['chapter_start'] <= $item->chapter_end)   return true;
+                    if ($hls_item['chapter_start'] >= $item->chapter_start) {
+                        return true;
+                    }
+                    if ($hls_item['chapter_start'] <= $item->chapter_end) {
+                        return true;
+                    }
                     return false;
                 });
 
@@ -1321,7 +1325,7 @@ class PlaylistsController extends APIController
                 $filesets_bibles = [];
                 $lookups = [];
                 $cache_key = 'bible_filesets_playlist';
-                foreach($fileset_ids as $fileset_id) {
+                foreach ($fileset_ids as $fileset_id) {
                     $cache_string = generateCacheString($cache_key, [$fileset_id]);
                     $fileset = cacheGet($cache_string);
                     if ($fileset) {
@@ -1335,9 +1339,9 @@ class PlaylistsController extends APIController
                     // query content server
                     $client = new Client();
                     $res = $client->get($config['url'] . 'bibles/filesets/'.
-                      join(',',$fileset_ids->toArray()).'/playlist?v=4&key=' . $config['key']);
+                      join(',', $fileset_ids->toArray()).'/playlist?v=4&key=' . $config['key']);
                     $filesets_bibles_download = json_decode($res->getBody() . '', true);
-                    foreach($filesets_bibles_download as $fileset_id => $fileset) {
+                    foreach ($filesets_bibles_download as $fileset_id => $fileset) {
                         $filesets_bibles[$fileset_id] = $fileset;
                         $cache_string = generateCacheString($cache_key, [$fileset_id]);
                         cacheAdd($cache_string, $fileset, now()->addDay());
@@ -1347,17 +1351,17 @@ class PlaylistsController extends APIController
                 // process result
                 $playlist->items = $playlist->items->map(
                   function ($item) use ($filesets_bibles) {
-                    $res = $filesets_bibles[$item->fileset_id];
-                    if ($res && count($res)) {
-                        $item->bible_id = $res[0]['bible_id'];
-                        // which will be one of ['audio_stream', 'audio_drama_stream', 'audio', 'audio_drama']
-                        $item->set_type_code = $res[0]['set_type_code'];
-                    } else {
-                        echo 'Content server does not have fileset[', $item->fileset_id, "]\n";
-                    }
-                    unset($item->fileset);
-                    return $item;
-                });
+                      $res = $filesets_bibles[$item->fileset_id];
+                      if ($res && count($res)) {
+                          $item->bible_id = $res[0]['bible_id'];
+                          // which will be one of ['audio_stream', 'audio_drama_stream', 'audio', 'audio_drama']
+                          $item->set_type_code = $res[0]['set_type_code'];
+                      } else {
+                          echo 'Content server does not have fileset[', $item->fileset_id, "]\n";
+                      }
+                      unset($item->fileset);
+                      return $item;
+                  });
             } // else no items
         }
 
@@ -1368,7 +1372,7 @@ class PlaylistsController extends APIController
     {
         $filesets = Arr::pluck(DB::connection('dbp_users')
             ->select('select DISTINCT(fileset_id) from playlist_items where playlist_id = ?', [$playlist_id]), 'fileset_id');
-        $fileset_text_info = array();
+        $fileset_text_info = [];
 
         $config = config('services.content');
 
@@ -1376,10 +1380,10 @@ class PlaylistsController extends APIController
         if (!empty($config['url'])) {
             $client = new Client();
             $res = $client->get($config['url'] . 'bibles/filesets/'.
-              join(',',$filesets).'/playlist?v=4&key=' . $config['key']);
+              join(',', $filesets).'/playlist?v=4&key=' . $config['key']);
             $filesets_hashes = collect(json_decode($res->getBody() . ''));
 
-            $fileset_text_info = array();
+            $fileset_text_info = [];
             foreach ($filesets as $fileset) {
                 // f data
                 $fileset_text_info[$fileset] = $filesets_hashes[$fileset] ?? null;

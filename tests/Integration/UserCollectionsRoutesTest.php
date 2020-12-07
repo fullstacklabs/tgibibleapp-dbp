@@ -7,8 +7,6 @@ use App\Models\User\Key;
 use App\Models\Collection\Collection;
 use App\Models\Collection\CollectionPlaylist;
 
-use Illuminate\Support\Arr;
-
 class UserCollectionsRoutesTest extends ApiV4Test
 {
     use AccessControlAPI;

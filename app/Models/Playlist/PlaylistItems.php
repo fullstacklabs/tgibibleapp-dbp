@@ -342,20 +342,19 @@ class PlaylistItems extends Model implements Sortable
             $config = config('services.content');
             // if configured to use content server
             if (!empty($config['url'])) {
-
-              $fileset_id = $this['fileset_id'];
-              $cache_params = [$fileset_id];
-              $text_fileset = cacheRemember('playlist_item_fileset_content_verses', $cache_params, now()->addDay(), function () use ($fileset_id, $config) {
-                  $client = new Client();
-                  $res = $client->get($config['url'] . 'bibles/filesets/'.
+                $fileset_id = $this['fileset_id'];
+                $cache_params = [$fileset_id];
+                $text_fileset = cacheRemember('playlist_item_fileset_content_verses', $cache_params, now()->addDay(), function () use ($fileset_id, $config) {
+                    $client = new Client();
+                    $res = $client->get($config['url'] . 'bibles/filesets/'.
                     $fileset_id.'/verses?v=4&key=' . $config['key']);
-                  return collect(json_decode($res->getBody() . ''));
-              });
-              $hash_id = $text_fileset['hash_id'];
+                    return collect(json_decode($res->getBody() . ''));
+                });
+                $hash_id = $text_fileset['hash_id'];
             } else {
-              $fileset = BibleFileset::where('id', $this['fileset_id'])->first();
-              $text_fileset = $fileset->bible->first()->filesets->where('set_type_code', 'text_plain')->first();
-              $hash_id = $text_fileset->hash_id;
+                $fileset = BibleFileset::where('id', $this['fileset_id'])->first();
+                $text_fileset = $fileset->bible->first()->filesets->where('set_type_code', 'text_plain')->first();
+                $hash_id = $text_fileset->hash_id;
             }
         }
 

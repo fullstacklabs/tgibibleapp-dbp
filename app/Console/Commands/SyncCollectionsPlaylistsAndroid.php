@@ -7,7 +7,6 @@ use App\Models\Collection\Collection;
 use App\Models\Collection\CollectionPlaylist;
 use App\Models\Playlist\Playlist;
 use App\Models\Playlist\PlaylistItems;
-use App\Http\Controllers\Playlist\PlaylistsController;
 use Illuminate\Support\Facades\DB;
 
 class SyncCollectionsPlaylistsAndroid extends Command
@@ -146,7 +145,7 @@ class SyncCollectionsPlaylistsAndroid extends Command
 
     private function locateBook($name)
     {
-        $fixUps = array(
+        $fixUps = [
           '1 Peter'    => '1Pet',
           '2 Peter'    => '2Pet',
           'Hebrews'    => 'Heb',
@@ -156,7 +155,7 @@ class SyncCollectionsPlaylistsAndroid extends Command
           'Romans'     => 'Rom',
           '2 Timothy'  => '2Tim',
           'Revelation' => 'Rev',
-        );
+        ];
         $noSpaceName = str_replace(' ', '', $name);
         if (isset($fixUps[$name])) {
             $noSpaceName = $fixUps[$name];
@@ -174,7 +173,7 @@ class SyncCollectionsPlaylistsAndroid extends Command
         // join to make sure it's attached to the associated bible...
         $coll2 = DB::connection('dbp')->table('bible_books')->where('bible_id', '=', $this->bible_id)->where('book_id', '=', $book_id)->get();
         if ($coll2->count() !== 1) {
-            echo "[$book_id] doesn't exist in [", $this->bible_id, "] count[", $coll2->count(), "]\n";
+            echo "[$book_id] doesn't exist in [", $this->bible_id, '] count[', $coll2->count(), "]\n";
             return 0;
         }
         return $book_id;
@@ -182,55 +181,59 @@ class SyncCollectionsPlaylistsAndroid extends Command
 
     private function commasDashes($str)
     {
-      if (strpos($str, '–') !== false) {
-        $parts = explode('–', $str);
-        $start = $parts[0];
-        $stop  = $parts[1];
-        return range($start, $stop);
-      }
-      if (strpos($str, '-') !== false) {
-        $parts = explode('-', $str);
-        $start = $parts[0];
-        $stop  = $parts[1];
-        return range($start, $stop);
-      }
-      if (strpos($str, ',') !== false) {
-        $arr = explode(',', $str);
-        foreach($arr as $i=>$item) {
-          $arr[$i] = trim($item);
+        if (strpos($str, '–') !== false) {
+            $parts = explode('–', $str);
+            $start = $parts[0];
+            $stop  = $parts[1];
+            return range($start, $stop);
         }
-        return $arr;
-      }
-      return array($str);
+        if (strpos($str, '-') !== false) {
+            $parts = explode('-', $str);
+            $start = $parts[0];
+            $stop  = $parts[1];
+            return range($start, $stop);
+        }
+        if (strpos($str, ',') !== false) {
+            $arr = explode(',', $str);
+            foreach ($arr as $i=>$item) {
+                $arr[$i] = trim($item);
+            }
+            return $arr;
+        }
+        return [$str];
     }
 
     private function decodeChapterVerse($verse)
     {
-      $parts = explode(' ', $verse);
-      $book = array_shift($parts);
-      // handle "1 Thess."
-      if ($book === '1') $book .= ' ' . array_shift($parts);
-      if ($book === '2') $book .= ' ' . array_shift($parts);
-      $book = str_replace('.', '', $book);
-      $book_id = $this->locateBook($book);
-      if (!$book_id) {
-        echo "[$book] does not exist\n";
-        exit();
-      }
-      $verses_part = join(' ', $parts);
-      if (strpos($verses_part, ':') !== false) {
-        $startstop = explode(':', $verses_part);
-        $chapter = $startstop[0];
-        $verses  = $this->commasDashes($startstop[1]);
-      } else {
-        $chapter = $verses_part;
-        $verses = array();
-      }
-      return array(
+        $parts = explode(' ', $verse);
+        $book = array_shift($parts);
+        // handle "1 Thess."
+        if ($book === '1') {
+            $book .= ' ' . array_shift($parts);
+        }
+        if ($book === '2') {
+            $book .= ' ' . array_shift($parts);
+        }
+        $book = str_replace('.', '', $book);
+        $book_id = $this->locateBook($book);
+        if (!$book_id) {
+            echo "[$book] does not exist\n";
+            exit();
+        }
+        $verses_part = join(' ', $parts);
+        if (strpos($verses_part, ':') !== false) {
+            $startstop = explode(':', $verses_part);
+            $chapter = $startstop[0];
+            $verses  = $this->commasDashes($startstop[1]);
+        } else {
+            $chapter = $verses_part;
+            $verses = [];
+        }
+        return [
         'book_id' => $book_id,
         'chapter' => $chapter,
         'verses' => $verses
-      );
+      ];
     }
 
     private function reloadPlaylistItems($playlist_id, $bible_id, $verse_data)
@@ -267,16 +270,16 @@ class SyncCollectionsPlaylistsAndroid extends Command
     private function readXmlStrings($file)
     {
         if (!file_exists($file)) {
-          echo "$file not found\n";
-          return;
+            echo "$file not found\n";
+            return;
         }
         $xml = simplexml_load_file($file);
 
-        $strings = array();
-        foreach($xml->string as $obj) {
-          $key = $obj['name'] . '';
-          $html = $obj . '';
-          $strings[$key] = $html;
+        $strings = [];
+        foreach ($xml->string as $obj) {
+            $key = $obj['name'] . '';
+            $html = $obj . '';
+            $strings[$key] = $html;
         }
         // $strings will contain the following keys
         // kjv_decision1, kjv_decision2, esv_decision1, esv_decision2
@@ -288,17 +291,17 @@ class SyncCollectionsPlaylistsAndroid extends Command
     {
         $en_file = preg_replace('|values[A-Za-z-\.]+|', 'values', $file);
         if (!file_exists($file)) {
-          echo "[$language_id][$bible_id] $file not found\n";
-          return;
+            echo "[$language_id][$bible_id] $file not found\n";
+            return;
         }
         echo $file, "\n";
 
         $xml = simplexml_load_file($file);
-        $playlists = array();
-        foreach($xml as $sa) {
+        $playlists = [];
+        foreach ($xml as $sa) {
             $eng_collection_title = $sa['name'].'';
             $i = 0;
-            foreach($sa->item as $item) {
+            foreach ($sa->item as $item) {
 
                 // fix the one bad json line in the whole bunch
                 if ($item.'' === '{\"topic\":\"Sexe\":[\"Eph. 5:3, 4\",\"1 Thess. 4:3, 4\",\"2Tim 2:22\"]}') {
@@ -308,12 +311,12 @@ class SyncCollectionsPlaylistsAndroid extends Command
                 $title = $json['topic'];
                 $playlist_id = $this->ensurePlaylist($collection_id, $title, $language_id);
 
-                $playlists[$json['topic']] = array(
-                  'verses'=>array(),
-                );
+                $playlists[$json['topic']] = [
+                  'verses'=>[],
+                ];
                 // commit data
                 if (is_array($json['verses'])) {
-                    foreach($json['verses'] as $verse) {
+                    foreach ($json['verses'] as $verse) {
                         $playlists[$json['topic']]['verses'] = $this->decodeChapterVerse($verse);
                         $this->reloadPlaylistItems($playlist_id, $bible_id, $playlists[$json['topic']]['verses']);
                     }
@@ -332,18 +335,20 @@ class SyncCollectionsPlaylistsAndroid extends Command
 
     private function spreadsheet($file, $data, $bible_id, $lang)
     {
-      $line = '';
-      if ($data === null) return; // files dne
-      if (!is_array($data)) {
-        echo "Data incorrect format [$data][", gettype($data), "]\n";
-        print_r($data);
-        exit(1);
-      }
-      foreach($data as $name => $v) {
-        $verses = $v['verses'];
-        $line .= '"' . $lang . '","' . $bible_id . '","' . $name . '","' . $verses['book_id'] . ' ' . $verses['chapter'] . ':' . join(',', $verses['verses']) . '"' . "\n";
-      }
-      file_put_contents($file, $line, FILE_APPEND);
+        $line = '';
+        if ($data === null) {
+            return;
+        } // files dne
+        if (!is_array($data)) {
+            echo "Data incorrect format [$data][", gettype($data), "]\n";
+            print_r($data);
+            exit(1);
+        }
+        foreach ($data as $name => $v) {
+            $verses = $v['verses'];
+            $line .= '"' . $lang . '","' . $bible_id . '","' . $name . '","' . $verses['book_id'] . ' ' . $verses['chapter'] . ':' . join(',', $verses['verses']) . '"' . "\n";
+        }
+        file_put_contents($file, $line, FILE_APPEND);
     }
 
     /**
@@ -359,7 +364,7 @@ class SyncCollectionsPlaylistsAndroid extends Command
         delete from user_playlists where user_id = 1255627;
         delete from collection_playlists;
         */
-        $dir = "storage/data/main/res/";
+        $dir = 'storage/data/main/res/';
 
         $headerLine = '"lang","bible_id","playlist name","verses"' . "\n";
         file_put_contents('col17.csv', $headerLine);
@@ -369,9 +374,11 @@ class SyncCollectionsPlaylistsAndroid extends Command
         // Open a known directory, and proceed to read its contents
         if (is_dir($dir)) {
             if ($dh = opendir($dir)) {
-                $trans = array();
+                $trans = [];
                 while (($file = readdir($dh)) !== false) {
-                    if ($file[0] === '.') continue;
+                    if ($file[0] === '.') {
+                        continue;
+                    }
                     if (strpos($file, 'values-') !== false) {
                         $parts = explode('-', $file);
                         $lang = array_pop($parts);
@@ -391,8 +398,8 @@ class SyncCollectionsPlaylistsAndroid extends Command
                         $strings_path = $dir . $file . '/strings.xml';
                         if (file_exists($strings_path)) {
                             $xml = simplexml_load_file($strings_path);
-                            $trans[$lang] = array();
-                            foreach($xml->string as $obj) {
+                            $trans[$lang] = [];
+                            foreach ($xml->string as $obj) {
                                 $name = $obj['name'].'';
                                 $trans[$lang][$name] = $obj.'';
                             }
@@ -408,9 +415,9 @@ class SyncCollectionsPlaylistsAndroid extends Command
                         $col19 = $this->readXML($language_id, $bible_id, $cc_path, 19);
 
                         if (0) {
-                          $strings_path = $dir . $file . '/gideons_res.xml';
-                          $strings = $this->readXmlStrings($strings_path);
-                          // maybe add to a languages csv?
+                            $strings_path = $dir . $file . '/gideons_res.xml';
+                            $strings = $this->readXmlStrings($strings_path);
+                            // maybe add to a languages csv?
                         }
 
                         $this->spreadsheet('col17.csv', $col17, $bible_id, $lang);

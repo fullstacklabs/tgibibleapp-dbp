@@ -586,45 +586,45 @@ class CollectionsController extends APIController
         $result = $collection->toArray();
 
         $playlists_collection = collect($result['playlists'])->map(
-          function($colPlaylist) use ($playlist_controller, $user) {
-            $playlist = $playlist_controller->getPlaylist($user, $colPlaylist['playlist_id']);
-            return array(
+          function ($colPlaylist) use ($playlist_controller, $user) {
+              $playlist = $playlist_controller->getPlaylist($user, $colPlaylist['playlist_id']);
+              return [
               'playlist_id' => $colPlaylist['playlist_id'],
               'name'        => $playlist->name,
               // Possible fields we may want to include in the future
               // featured, user_id, plan_id, following, draft?
               'language_id' => $playlist->language_id,
               'item_count'       => $playlist->items ? $playlist->items->count() : 0,
-            );
-        });
+            ];
+          });
 
         // filter collection, strip items
         $playlists_collection = $playlists_collection->filter(
-          function($colPlaylist) use ($iso, $language_id, $playlist_controller, $user) {
-            // if filtering by language
-            if ($iso) {
-                // get playlist language
-                if ($colPlaylist['language_id'] !== $language_id) {
-                    return false;
-                }
-            }
-            // make sure playlist has data
-            return !!$colPlaylist['item_count'];
-        });
+          function ($colPlaylist) use ($iso, $language_id, $playlist_controller, $user) {
+              // if filtering by language
+              if ($iso) {
+                  // get playlist language
+                  if ($colPlaylist['language_id'] !== $language_id) {
+                      return false;
+                  }
+              }
+              // make sure playlist has data
+              return !!$colPlaylist['item_count'];
+          });
 
         // this loop takes about 200ms
         // need the array_values because any gaps will change the json format
         // it will strip out the playlist_id
         $result['playlists'] = array_values($playlists_collection->map(
-          function($colPlaylist) {
-            unset($colPlaylist['language_id']);
-            return $colPlaylist;
-        })->toArray());
+          function ($colPlaylist) {
+              unset($colPlaylist['language_id']);
+              return $colPlaylist;
+          })->toArray());
 
 
         if ($show_details) {
             // get those playlists
-            foreach($result['playlists'] as $i => $playlistRow) {
+            foreach ($result['playlists'] as $i => $playlistRow) {
                 $playlist = $playlist_controller->getPlaylist($user, $playlistRow['playlist_id']);
                 if (!$show_items) {
                     // rehide items
@@ -753,5 +753,4 @@ class CollectionsController extends APIController
         $playlists->delete();
         return $this->reply('Collection Playlist Deleted');
     }
-
 }

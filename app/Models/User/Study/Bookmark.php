@@ -134,7 +134,7 @@ class Bookmark extends Model
                 $this['bible_id']
             );
         } else {
-           return new EmptyRelation();
+            return new EmptyRelation();
         }
     }
 
@@ -144,7 +144,7 @@ class Bookmark extends Model
         if (empty($content_config['url'])) {
             return $this->belongsTo(Bible::class);
         } else {
-           return new EmptyRelation();
+            return new EmptyRelation();
         }
     }
 
@@ -170,10 +170,10 @@ class Bookmark extends Model
                 ->where('bible_filesets.set_type_code', 'text_plain')
                 ->where('connection.bible_id', $bible->id)
                 ->first();
-                  if (!$fileset) {
-                      return '';
-                  }
-                  $verses = BibleVerse::withVernacularMetaData($bible)
+            if (!$fileset) {
+                return '';
+            }
+            $verses = BibleVerse::withVernacularMetaData($bible)
                 ->where('hash_id', $fileset->hash_id)
                 ->where('bible_verses.book_id', $bookmark['book_id'])
                 ->where('verse_start', $verse_start)
@@ -191,13 +191,13 @@ class Bookmark extends Model
 
             $verse_data = cacheRemember('book_verse_text_data', [
               $bible_id, $book_id, $chapter, $verse_start], now()->addDay(), function () use ($bible_id, $book_id, $chapter, $verse_start, $content_config) {
-                $client = new Client();
-                $res = $client->get($content_config['url'] . 'bibles/' .
+                  $client = new Client();
+                  $res = $client->get($content_config['url'] . 'bibles/' .
                    $bible_id . '/book/' . $book_id . '/' .
                    $chapter . '/' . $verse_start .
                    '?v=4&key=' . $content_config['key']);
-                return $res->getBody() . '';
-            });
+                  return $res->getBody() . '';
+              });
             return $verse_data;
         }
     }

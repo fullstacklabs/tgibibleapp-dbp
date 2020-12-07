@@ -19,16 +19,16 @@ class RemoveDbpFks extends Migration
             // the name in seed doesn't match migrations
             // so be smartish about it
             if (count($data)) {
-              // access_group_api_keys_ibfk_1 (seed) or FK_access_groups_access_group_api_keys (migration)
-              $table->dropForeign($data[0]->CONSTRAINT_NAME);
+                // access_group_api_keys_ibfk_1 (seed) or FK_access_groups_access_group_api_keys (migration)
+                $table->dropForeign($data[0]->CONSTRAINT_NAME);
             }
         });
         Schema::connection('dbp_users')->table('access_group_keys', function (Blueprint $table) {
             $data = DB::select(DB::raw('SELECT * FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA != CONSTRAINT_SCHEMA and TABLE_NAME="access_group_api_keys"'));
             // the name in seed isn't in any migration
             if (count($data)) {
-              // access_group_keys_ibfk_1 (seed) or FK_access_group_keys (migration)
-              $table->dropForeign($data[0]->CONSTRAINT_NAME);
+                // access_group_keys_ibfk_1 (seed) or FK_access_group_keys (migration)
+                $table->dropForeign($data[0]->CONSTRAINT_NAME);
             }
         });
         Schema::connection('dbp_users')->table('article_tags', function (Blueprint $table) {

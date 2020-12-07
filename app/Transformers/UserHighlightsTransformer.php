@@ -3,15 +3,13 @@
 namespace App\Transformers;
 
 use App\Models\User\Study\Highlight;
-use League\Fractal\TransformerAbstract;
 use GuzzleHttp\Client;
 
 class UserHighlightsTransformer extends BaseTransformer
 {
-
-      public function transform(Highlight $highlight)
-     {
-         switch ((int) $this->version) {
+    public function transform(Highlight $highlight)
+    {
+        switch ((int) $this->version) {
              case 2:
                  return $this->transformForV2($highlight);
              case 3:
@@ -21,7 +19,7 @@ class UserHighlightsTransformer extends BaseTransformer
              default:
                  return $this->transformForV4($highlight);
          }
-     }
+    }
 
     /**
      * @OA\Schema (
@@ -66,36 +64,38 @@ class UserHighlightsTransformer extends BaseTransformer
         }
 
         if (!isset($highlight->book->name)) {
-             // likely remote content set up
-             $book_name = '';
-             $content_config = config('services.content');
-             if (!empty($content_config['url'])) {
-                 if ($highlight->book_name) {
-                     $book_name = $highlight->book_name;
-                     $testament = $highlight->testament;
-                 } else {
-                     // we can pull book name from content server
-                     $client = false;
-                     $book_data = cacheRemember('bible_book_data',
+            // likely remote content set up
+            $book_name = '';
+            $content_config = config('services.content');
+            if (!empty($content_config['url'])) {
+                if ($highlight->book_name) {
+                    $book_name = $highlight->book_name;
+                    $testament = $highlight->testament;
+                } else {
+                    // we can pull book name from content server
+                    $client = false;
+                    $book_data = cacheRemember('bible_book_data',
                        [$highlight->bible_id, $highlight->book_id], now()->addDay(),
                        function () use ($highlight, $content_config, $client) {
-                         if (!$client) $client = new Client();
-                         $res = $client->get($content_config['url'] . 'bibles/' .
+                           if (!$client) {
+                               $client = new Client();
+                           }
+                           $res = $client->get($content_config['url'] . 'bibles/' .
                             $highlight->bible_id . '/book/' . $highlight->book_id .
                             '?v=4&key=' . $content_config['key']);
-                         $result = json_decode($res->getBody() . '', true);
-                         if ($result && $result['data'] && count($result['data'])) {
-                           return $result['data'][0];
-                         }
-                     });
-                     $book_name = $book_data['name'];
-                     $testament = $book_data['testament'];
-                 }
-             }
-         } else {
-              // can use relationship to get content locally
-              $book_name = optional($highlight->book)->name;
-         }
+                           $result = json_decode($res->getBody() . '', true);
+                           if ($result && $result['data'] && count($result['data'])) {
+                               return $result['data'][0];
+                           }
+                       });
+                    $book_name = $book_data['name'];
+                    $testament = $book_data['testament'];
+                }
+            }
+        } else {
+            // can use relationship to get content locally
+            $book_name = optional($highlight->book)->name;
+        }
 
         if (isset($highlight->fileset_info)) {
             $highlight_fileset_info = $highlight->fileset_info;
@@ -115,12 +115,14 @@ class UserHighlightsTransformer extends BaseTransformer
                 // we're using $testament and $client from above
                 $data = cacheRemember('bible_book_filesets_testament', [$bible_id, $book_id, $testament],
                   now()->addDay(), function () use ($content_config, $bible_id, $book_id, $testament, $client) {
-                    if (!$client) $client = new Client();
-                    $res = $client->get($content_config['url'] . 'bibles/' .
+                      if (!$client) {
+                          $client = new Client();
+                      }
+                      $res = $client->get($content_config['url'] . 'bibles/' .
                       $bible_id. '/books/'. $book_id . '/testament/' . $testament .
                       '?v=4&key=' . $content_config['key']);
-                    return json_decode($res->getBody() . '', true);
-                });
+                      return json_decode($res->getBody() . '', true);
+                  });
                 $audio_filesets = $data['audio_filesets'];
                 if ($data['text_fileset']) {
                     // not sure this is the same data
@@ -130,24 +132,35 @@ class UserHighlightsTransformer extends BaseTransformer
                     // get verse data
                     $bible_verse_text = cacheRemember('bible_verses', [$bible_id],
                       now()->addDay(), function () use ($content_config, $bible_id, $client) {
-                        if (!$client) $client = new Client();
-                        $res = $client->get($content_config['url'] . 'bibles/'
+                          if (!$client) {
+                              $client = new Client();
+                          }
+                          $res = $client->get($content_config['url'] . 'bibles/'
                           .  $bible_id . '/verses?v=4&key=' . $content_config['key']);
-                        return json_decode($res->getBody() . '', true);
-                    });
+                          return json_decode($res->getBody() . '', true);
+                      });
 
                     if (isset($bible_verse_text['books'])) {
                         // make book_id to book_data lookup map
-                        $bible_book_verses_map = array();
-                        foreach($bible_verse_text['books'] as $book) {
+                        $bible_book_verses_map = [];
+                        foreach ($bible_verse_text['books'] as $book) {
                             $bible_book_verses_map[$book['book_id']] = $book;
                         }
                         if (isset($bible_book_verses_map[$highlight->book_id])) {
-                            $bible_verse = collect($bible_book_verses_map[$highlight->book_id])->filter(function($arr) use ($highlight) {
+                            $bible_verse = collect($bible_book_verses_map[$highlight->book_id])->filter(function ($arr) use ($highlight) {
                                 //$inBook     = $arr[4] == $highlight->book_id;     if (!$inBook) return false;
-                                $inChapter  = $arr[0] == $highlight->chapter;     if (!$inChapter) return false;
-                                $afterStart = $arr[1] >= $highlight->verse_start; if (!$afterStart) return false;
-                                $beforEnd   = $arr[2] <= $highlight->verse_end;   if (!$beforEnd) return false;
+                                $inChapter  = $arr[0] == $highlight->chapter;
+                                if (!$inChapter) {
+                                    return false;
+                                }
+                                $afterStart = $arr[1] >= $highlight->verse_start;
+                                if (!$afterStart) {
+                                    return false;
+                                }
+                                $beforEnd   = $arr[2] <= $highlight->verse_end;
+                                if (!$beforEnd) {
+                                    return false;
+                                }
                                 return true;
                             });
                             if ($bible_verse->count()) {
@@ -237,5 +250,4 @@ class UserHighlightsTransformer extends BaseTransformer
             ]]
         ];
     }
-
 }

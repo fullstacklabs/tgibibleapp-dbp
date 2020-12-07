@@ -12,7 +12,6 @@ use App\Traits\CheckProjectMembership;
 use League\Fractal\Pagination\IlluminatePaginatorAdapter;
 use Illuminate\Support\Facades\DB;
 use Validator;
-use App\Services\ContentServiceProvider;
 use GuzzleHttp\Client;
 
 use Illuminate\Http\Request;
@@ -181,7 +180,7 @@ class HighlightsController extends APIController
                 if (is_array($book_order)) {
                     $book_order_map = array_flip($book_order);
                 } else {
-                    $book_order_map = array();
+                    $book_order_map = [];
                 }
                 $order_by = DB::raw('user_highlights.chapter, user_highlights.verse_start');
             }
@@ -264,17 +263,17 @@ class HighlightsController extends APIController
             // and do the final sort
 
             // user_highlights => bible content
-            $map = array();
-            $biblebooks = array();
-            foreach($highlight_collection as $hl) {
+            $map = [];
+            $biblebooks = [];
+            foreach ($highlight_collection as $hl) {
                 $key = $hl->bible_id;
                 // list of bibles
                 if (!isset($map[$key])) {
-                    $map[$key] = array();
+                    $map[$key] = [];
                 }
                 // list of books per bible
                 if (!isset($biblebooks[$key])) {
-                    $biblebooks[$key] = array();
+                    $biblebooks[$key] = [];
                 }
                 $biblebooks[$key][$hl->book_id] = 1;
                 // might be faster if we break down HLs into books
@@ -284,35 +283,35 @@ class HighlightsController extends APIController
 
             // now process each bible's highlights
             $client = new Client(); // reuseable client
-            $keepers = array();
-            foreach($map as $slug => $hlrows) {
+            $keepers = [];
+            foreach ($map as $slug => $hlrows) {
                 //echo "Start[$slug] [", join(',', array_keys($biblebooks[$slug])), "]<br>\n";
                 // download a copy of the verses in bible (31k rows, ~1-4MB)
                 $bible_verse_text = cacheRemember('bible_verses', [$slug],
                   now()->addDay(), function () use ($content_config, $slug, $client) {
-                    $res = $client->get($content_config['url'] . 'bibles/' .  $slug .
+                      $res = $client->get($content_config['url'] . 'bibles/' .  $slug .
                       '/verses?v=4&key=' . $content_config['key']);
-                    return json_decode($res->getBody() . '', true);
-                });
+                      return json_decode($res->getBody() . '', true);
+                  });
 
                 // bible_verse_text['books'] contains book_id, name, testament, verses
                 // verses are sent in this order:
                 // 0=>chapter, 1=>verse_start, 2=>verse_end, 3=>verse_text
 
                 if (0) {
-                  foreach($bible_verse_text['books'] as $book) {
-                    echo "Have [", $book['book_id'], "]<br>\n";
-                  }
+                    foreach ($bible_verse_text['books'] as $book) {
+                        echo 'Have [', $book['book_id'], "]<br>\n";
+                    }
                 }
 
                 // gives a 4-10x reduction
-                $bible_book_verses_arr = collect($bible_verse_text['books'])->filter(function($book) use ($slug, $biblebooks) {
+                $bible_book_verses_arr = collect($bible_verse_text['books'])->filter(function ($book) use ($slug, $biblebooks) {
                     //echo "Looking [", $book['book_id'], "] in [", join(', ', array_keys($biblebooks[$slug])), "]<br>\n";
                     return in_array($book['book_id'], array_keys($biblebooks[$slug]));
                 });
                 // make book_id to book_data lookup map
-                $bible_book_verses_map = array();
-                foreach($bible_book_verses_arr as $book) {
+                $bible_book_verses_map = [];
+                foreach ($bible_book_verses_arr as $book) {
                     //echo "Adding [", $book['book_id'], "]\n";
                     $bible_book_verses_map[$book['book_id']] = $book;
                 }
@@ -320,8 +319,8 @@ class HighlightsController extends APIController
 
                 // only keep the books we need
                 // sometimes removes 0, other times 66:1-7
-                $audio_sets = array();
-                foreach($biblebooks[$slug] as $book_id=>$one) {
+                $audio_sets = [];
+                foreach ($biblebooks[$slug] as $book_id=>$one) {
                     $audio_sets[$book_id] = $bible_verse_text['audio_filesets'][$book_id];
                 }
 
@@ -330,7 +329,7 @@ class HighlightsController extends APIController
                 unset($bible_verse_text); // free memory
 
                 // filter bible_verse_text by hlrows
-                foreach($hlrows as $i => $hl) {
+                foreach ($hlrows as $i => $hl) {
                     if (!isset($bible_book_verses_map[$hl->book_id])) {
                         //echo "No content for [$slug][", $hl->book_id, "]<br>\n";
                         continue;
@@ -338,11 +337,20 @@ class HighlightsController extends APIController
                     $book_data = $bible_book_verses_map[$hl->book_id];
                     $testament = $book_data['testament'];
                     $book_name = $book_data['name'];
-                    $filtered = collect($book_data['verses'])->filter(function($arr) use ($hl, $chapter_id, $book_name, $query) {
+                    $filtered = collect($book_data['verses'])->filter(function ($arr) use ($hl, $chapter_id, $book_name, $query) {
                         // join
-                        $inChapter  = $arr[0] == $hl->chapter;     if (!$inChapter) return false;
-                        $afterStart = $arr[1] >= $hl->verse_start; if (!$afterStart) return false;
-                        $beforEnd   = $arr[2] <= $hl->verse_end;   if (!$beforEnd) return false;
+                        $inChapter  = $arr[0] == $hl->chapter;
+                        if (!$inChapter) {
+                            return false;
+                        }
+                        $afterStart = $arr[1] >= $hl->verse_start;
+                        if (!$afterStart) {
+                            return false;
+                        }
+                        $beforEnd   = $arr[2] <= $hl->verse_end;
+                        if (!$beforEnd) {
+                            return false;
+                        }
                         // when chapter_id
                         $chapterOk = $chapter_id ? $chapter_id === $hl->chapter : true;
                         // when query
@@ -354,7 +362,7 @@ class HighlightsController extends APIController
                     });
 
                     // add results we haven't already included
-                    foreach($filtered as $arr) {
+                    foreach ($filtered as $arr) {
                         // handles book, chapter, verse_start ordering (and continues to order by verse_end and book_id)
                         // this variable has to be unique per $hl record
                         // FIXME: non sort_by_book support
@@ -375,9 +383,9 @@ class HighlightsController extends APIController
 
             // handle sort directory
             if ($sort_dir === 'asc') {
-              ksort($keepers);
+                ksort($keepers);
             } else {
-              krsort($keepers);
+                krsort($keepers);
             }
             $highlight_collection = collect($keepers);
             // TODO: cache keeper count, so future limit can bail early
