@@ -122,12 +122,6 @@ class CollectionsController extends APIController
             })
             ->orderBy($sort_by, $sort_dir)->paginate($limit);
 
-        /*
-        foreach ($collections as $collection) {
-            $collection->total_days = sizeof($collection->days);
-            unset($collection->days);
-        }
-        */
         return $collections;
     }
 
@@ -238,19 +232,15 @@ class CollectionsController extends APIController
 
         $playlist_controller = new PlaylistsController();
         if ($show_details) {
-            // days?
-            /*
-            foreach ($collection->days as $day) {
-                $day_playlist = $playlist_controller->getPlaylist($user, $day->playlist_id);
-                $day_playlist->path = route('v4_playlists.hls', ['playlist_id'  => $day_playlist->id, 'v' => $this->v, 'key' => $this->key]);
+            foreach ($collection->playlists as $playlist) {
+                $playlist_data = $playlist_controller->getPlaylist($user, $playlist->playlist_id);
                 if ($show_text) {
-                    foreach ($day_playlist->items as $item) {
+                    foreach ($playlist_data->items as $item) {
                         $item->verse_text = $item->getVerseText();
                     }
                 }
-                $day->playlist = $day_playlist;
+                $playlist->playlist = $playlist_data;
             }
-            */
         }
 
         return $this->reply($collection);
@@ -309,6 +299,22 @@ class CollectionsController extends APIController
 
         $collection->update($update_values);
 
+        $playlists = checkParam('playlists');
+        $delete_playlists = checkBoolean('delete_playlists');
+
+        if ($playlists || $delete_playlists) {
+            $playlists_ids = [];
+            if (!$delete_playlists) {
+                $playlists_ids = explode(',', $playlists);
+                CollectionPlaylist::setNewOrder($playlists_ids);
+            }
+            $deleted_playlists = CollectionPlaylist::whereNotIn('id', $playlists_ids)->where('collection_id', $collection->id);
+            $playlists_ids = $deleted_playlists->pluck('playlist_id')->unique();
+            $collection_playlists = Playlist::whereIn('id', $playlists_ids);
+            $deleted_playlists->delete();
+            $collection_playlists->delete();
+        }
+
         $collection = $this->getCollection($collection->id, $user);
 
         return $this->reply($collection);
@@ -353,14 +359,6 @@ class CollectionsController extends APIController
         if (!$collection) {
             return $this->setStatusCode(404)->replyWithError('Collection Not Found');
         }
-
-        /*
-        $collection_playlists_ids = $collection->playlists()->pluck('id')->unique();
-        $collection_playlists = CollectionPlaylist::whereIn('id', $collection_playlists_ids);
-        $collection_playlists->delete();
-        */
-        //$user_plans = UserPlan::where('collection_id', $collection_id);
-        //$user_plans->delete();
 
         $collection->playlists()->delete();
         $collection->delete();
@@ -493,264 +491,5 @@ class CollectionsController extends APIController
         ]);
 
         return $this->reply($collection_playlist);
-    }
-
-    /**
-     *
-     * @OA\Get(
-     *     path="/collections/{collection_id}/playlists",
-     *     tags={"Collection"},
-     *     summary="A user's collection",
-     *     operationId="v4_collections.playlists",
-     *     security={{"api_token":{}}},
-     *     @OA\Parameter(
-     *          name="collection_id",
-     *          in="path",
-     *          required=true,
-     *          @OA\Schema(ref="#/components/schemas/Collection/properties/id"),
-     *          description="The collection id"
-     *     ),
-     *     @OA\Parameter(
-     *          name="show_details",
-     *          in="query",
-     *          @OA\Schema(type="boolean"),
-     *          description="Give full details of the playlist"
-     *     ),
-     *     @OA\Parameter(
-     *          name="show_items",
-     *          in="query",
-     *          @OA\Schema(type="boolean"),
-     *          description="Give items details of the playlists"
-     *     ),
-     *     @OA\Parameter(
-     *          name="show_text",
-     *          in="query",
-     *          @OA\Schema(type="boolean"),
-     *          description="Enable the verse_text of the playlists and retrieve the text of the playlists items"
-     *     ),
-     *     @OA\Parameter(
-     *          name="hide_hls",
-     *          in="query",
-     *          @OA\Schema(type="boolean"),
-     *          description="Disable hls playlist items"
-     *     ),
-     *     @OA\Parameter(
-     *          name="iso",
-     *          in="query",
-     *          @OA\Schema(ref="#/components/schemas/Language/properties/iso"),
-     *          description="The iso code to filter collections by. For a complete list see the `iso` field in the `/languages` route"
-     *     ),
-     *     @OA\Response(response=200, ref="#/components/responses/plan")
-     * )
-     *
-     * @param $collection_id
-     *
-     * @return mixed
-     *
-     *
-     */
-    public function getPlaylists(Request $request, $collection_id)
-    {
-        $user = $request->user();
-
-        // Validate Project / User Connection
-        if (!empty($user) && !$this->compareProjects($user->id, $this->key)) {
-            return $this->setStatusCode(401)->replyWithError(trans('api.projects_users_not_connected'));
-        }
-
-        $collection = $this->getCollection($collection_id, $user);
-
-        if (!$collection) {
-            return $this->setStatusCode(404)->replyWithError('Collection Not Found');
-        }
-
-        $show_details = checkBoolean('show_details');
-        // default to hide items per Johan
-        $show_items = checkBoolean('show_items');
-        $show_text = checkBoolean('show_text');
-        $hide_hls = checkBoolean('hide_hls');
-        $iso = checkParam('iso');
-        if ($show_text) {
-            $show_details = $show_text;
-        }
-
-        $language_id = '';
-        if ($iso) {
-            $language_id = cacheRemember('v4_language_id_from_iso', [$iso], now()->addDay(), function () use ($iso) {
-                return optional(Language::where('iso', $iso)->select('id')->first())->id;
-            });
-        }
-
-        $playlist_controller = new PlaylistsController();
-
-        $result = $collection->toArray();
-
-        $playlists_collection = collect($result['playlists'])->map(
-          function ($colPlaylist) use ($playlist_controller, $user) {
-              $playlist = $playlist_controller->getPlaylist($user, $colPlaylist['playlist_id']);
-              return [
-              'playlist_id' => $colPlaylist['playlist_id'],
-              'name'        => $playlist->name,
-              // Possible fields we may want to include in the future
-              // featured, user_id, plan_id, following, draft?
-              'language_id' => $playlist->language_id,
-              'item_count'       => $playlist->items ? $playlist->items->count() : 0,
-            ];
-          });
-
-        // filter collection, strip items
-        $playlists_collection = $playlists_collection->filter(
-          function ($colPlaylist) use ($iso, $language_id, $playlist_controller, $user) {
-              // if filtering by language
-              if ($iso) {
-                  // get playlist language
-                  if ($colPlaylist['language_id'] !== $language_id) {
-                      return false;
-                  }
-              }
-              // make sure playlist has data
-              return !!$colPlaylist['item_count'];
-          });
-
-        // this loop takes about 200ms
-        // need the array_values because any gaps will change the json format
-        // it will strip out the playlist_id
-        $result['playlists'] = array_values($playlists_collection->map(
-          function ($colPlaylist) {
-              unset($colPlaylist['language_id']);
-              return $colPlaylist;
-          })->toArray());
-
-
-        if ($show_details) {
-            // get those playlists
-            foreach ($result['playlists'] as $i => $playlistRow) {
-                $playlist = $playlist_controller->getPlaylist($user, $playlistRow['playlist_id']);
-                if (!$show_items) {
-                    // rehide items
-                    unset($playlist->items);
-                }
-                if (!$hide_hls) {
-                    $playlist->path = route('v4_playlists.hls', ['playlist_id'  => $playlistRow['playlist_id'], 'v' => $this->v, 'key' => $this->key]);
-                }
-                if ($show_items && $show_text) {
-                    foreach ($playlist->items as $item) {
-                        $item->verse_text = $item->getVerseText();
-                    }
-                }
-                $result['playlists'][$i] = $playlist;
-            }
-        }
-
-        return $this->reply($result);
-    }
-
-    /**
-     *
-     * @OA\Put(
-     *     path="/collections/{collection_id}/playlists/{playlist_id}",
-     *     tags={"Collections"},
-     *     summary="Update a collection playlist",
-     *     description="Update a collection playlist",
-     *     operationId="v4_collection_playlists.update",
-     *     @OA\Parameter(name="collection_id", in="path", required=true, @OA\Schema(ref="#/components/schemas/Collection/properties/id")),
-     *     @OA\Parameter(name="playlist_id", in="path", required=true, @OA\Schema(ref="#/components/schemas/Playlist/properties/id")),
-     *     @OA\RequestBody(required=true, description="Fields for Collection Playlist Update",
-     *          @OA\MediaType(mediaType="application/json",                  @OA\Schema(ref="#/components/schemas/CollectionPlaylist")),
-     *          @OA\MediaType(mediaType="application/x-www-form-urlencoded", @OA\Schema(ref="#/components/schemas/CollectionPlaylist"))
-     *     ),
-     *     @OA\Response(
-     *         response=201,
-     *         description="The collection playlist just edited",
-     *         @OA\MediaType(mediaType="application/json", @OA\Schema(ref="#/components/schemas/CollectionPlaylist")),
-     *         @OA\MediaType(mediaType="application/xml",  @OA\Schema(ref="#/components/schemas/CollectionPlaylist")),
-     *         @OA\MediaType(mediaType="text/x-yaml",      @OA\Schema(ref="#/components/schemas/CollectionPlaylist")),
-     *         @OA\MediaType(mediaType="text/csv",      @OA\Schema(ref="#/components/schemas/CollectionPlaylist"))
-     *     )
-     * )
-     *
-     * @param $id
-     *
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     */
-    public function updatePlaylist(Request $request, $collection_id, $playlist_id)
-    {
-        $order_column = intval(checkParam('order_column', true));
-
-        // Validate Project / User Connection
-        $user = $request->user();
-        $user_is_member = $this->compareProjects($user->id, $this->key);
-
-        if (!$user_is_member) {
-            return $this->setStatusCode(401)->replyWithError(trans('api.projects_users_not_connected'));
-        }
-
-        $collection = Collection::where('user_id', $user->id)->where('id', $collection_id)->first();
-
-        if (!$collection) {
-            return $this->setStatusCode(404)->replyWithError('Collection Not Found');
-        }
-        $playlists = $collection->playlists()->where('playlist_id', $playlist_id);
-        if (!$playlists->count()) {
-            return $this->setStatusCode(404)->replyWithError('Playlist Not Found');
-        }
-        // request()->all() has too many fields
-        $playlists->update([
-          'collection_id' => $collection_id,
-          'playlist_id'   => $playlist_id,
-          'order_column'  => $order_column,
-        ]);
-        //$playlists->save();
-
-        return $this->reply($playlists);
-    }
-
-    /**
-     * Remove the specified collection playlist.
-     *
-     *  @OA\Delete(
-     *     path="/collections/{collection_id}/playlists/{playlist_id}",
-     *     tags={"Collections"},
-     *     summary="Delete a collection",
-     *     operationId="v4_collection_playlists.destroy",
-     *     security={{"api_token":{}}},
-     *     @OA\Parameter(name="collection_id", in="path", required=true, @OA\Schema(ref="#/components/schemas/Collection/properties/id")),
-     *     @OA\Parameter(name="playlist_id", in="path", required=true, @OA\Schema(ref="#/components/schemas/Playlist/properties/id")),
-     *     @OA\Response(
-     *         response=200,
-     *         description="successful operation",
-     *         @OA\MediaType(mediaType="application/json", @OA\Schema(type="string")),
-     *         @OA\MediaType(mediaType="application/xml",  @OA\Schema(type="string")),
-     *         @OA\MediaType(mediaType="text/x-yaml",      @OA\Schema(type="string")),
-     *         @OA\MediaType(mediaType="text/csv",      @OA\Schema(type="string"))
-     *     )
-     * )
-     *
-     * @param  int $collection_id
-     * @param  int $playlist_id
-     *
-     * @return array|\Illuminate\Http\Response
-     */
-    public function destroyPlaylist(Request $request, $collection_id, $playlist_id)
-    {
-        // Validate Project / User Connection
-        $user = $request->user();
-        $user_is_member = $this->compareProjects($user->id, $this->key);
-
-        if (!$user_is_member) {
-            return $this->setStatusCode(401)->replyWithError(trans('api.projects_users_not_connected'));
-        }
-
-        $collection = Collection::where('user_id', $user->id)->where('id', $collection_id)->first();
-
-        if (!$collection) {
-            return $this->setStatusCode(404)->replyWithError('Collection Not Found');
-        }
-        $playlists = $collection->playlists()->where('playlist_id', $playlist_id);
-        if (!$playlists->count()) {
-            return $this->setStatusCode(404)->replyWithError('Playlist Not Found');
-        }
-        $playlists->delete();
-        return $this->reply('Collection Playlist Deleted');
     }
 }
