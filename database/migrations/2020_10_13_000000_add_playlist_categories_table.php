@@ -34,10 +34,10 @@ class AddPlaylistCategoriesTable extends Migration
             Schema::connection('dbp_users')->create(
                 'collection_playlists',
                 function (Blueprint $table) {
-                    $table->increments('id');
-                    $table->integer('collection_id')->unsigned();
+                    $table->bigIncrements('id');
+                    $table->bigInteger('collection_id')->unsigned();
                     $table->foreign('collection_id', 'FK_collection_collection_playlists')->references('id')->on(config('database.connections.dbp_users.database') . '.collections')->onDelete('cascade')->onUpdate('cascade');
-                    $table->integer('playlist_id')->unsigned();
+                    $table->bigInteger('playlist_id')->unsigned()->nullable();
                     $table->foreign('playlist_id', 'FK_playlist_collection_playlists')->references('id')->on(config('database.connections.dbp_users.database') . '.user_playlists')->onDelete('cascade')->onUpdate('cascade');
                     $table->integer('order_column')->unsigned();
                     $table->timestamp('created_at')->default(DB::raw('CURRENT_TIMESTAMP'));
