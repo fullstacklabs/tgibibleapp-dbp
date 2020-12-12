@@ -39,7 +39,7 @@ class ApiV4Test extends TestCase
 
     /**
      * @category V4_API
-     * @category Route Name: v4_api.versions
+     * @category Route Name: v4_internal_api.versions
      * @category Route Path: https://api.dbp.test/api/versions?v=4&key={key}
      * @see      \App\Http\Controllers\HomeController::versions
      * @group    V4
@@ -53,7 +53,7 @@ class ApiV4Test extends TestCase
      */
     public function versionsReturnSuccessful()
     {
-        $path = route('v4_api.versions', $this->params);
+        $path = route('v4_internal_api.versions', $this->params);
         echo "\nTesting: $path";
         $response = $this->withHeaders($this->params)->get($path);
         $response->assertSuccessful();
@@ -62,7 +62,7 @@ class ApiV4Test extends TestCase
 
     /**
      * @category V4_API
-     * @category Route Name: v4_api.buckets
+     * @category Route Name: v4_internal_api.buckets
      * @category Route Path: https://api.dbp.test/api/buckets?v=4&key={key}
      * @see      \App\Http\Controllers\HomeController::buckets
      * @group    V4
@@ -71,7 +71,7 @@ class ApiV4Test extends TestCase
      */
     public function bucketsReturnSuccessful()
     {
-        $path = route('v4_api.buckets', $this->params);
+        $path = route('v4_internal_api.buckets', $this->params);
         echo "\nTesting: $path";
         $response = $this->withHeaders($this->params)->get($path);
         $response->assertSuccessful();
@@ -79,7 +79,7 @@ class ApiV4Test extends TestCase
 
     /**
      * @category V4_API
-     * @category Route Name: v4_api.stats
+     * @category Route Name: v4_internal_api.stats
      * @category Route Path: https://api.dbp.test/stats?v=4&key={key}
      * @see      \App\Http\Controllers\HomeController::stats
      * @group    V4
@@ -88,7 +88,7 @@ class ApiV4Test extends TestCase
      */
     public function statsReturnSuccessful()
     {
-        $path = route('v4_api.stats', $this->params);
+        $path = route('v4_internal_api.stats', $this->params);
         echo "\nTesting: $path";
         $response = $this->withHeaders($this->params)->get($path);
         $response->assertSuccessful();
