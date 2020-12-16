@@ -3,6 +3,8 @@
 namespace App\Models\Collection;
 
 use Illuminate\Database\Eloquent\Model;
+use Spatie\EloquentSortable\Sortable;
+use Spatie\EloquentSortable\SortableTrait;
 
 /**
  * App\Models\CollectionPlaylist
@@ -21,11 +23,14 @@ use Illuminate\Database\Eloquent\Model;
  *     title="CollectionPlaylist"
  * )
  */
-class CollectionPlaylist extends Model
+class CollectionPlaylist extends Model implements Sortable
 {
+    use SortableTrait;
+
     protected $connection = 'dbp_users';
     public $table         = 'collection_playlists';
-    protected $fillable   = ['collection_id', 'playlist_id', 'order_column'];
+    protected $fillable   = ['collection_id', 'playlist_id'];
+    protected $hidden     = ['order_column'];
 
     /**
      *
@@ -60,17 +65,6 @@ class CollectionPlaylist extends Model
      *
      */
     protected $playlist_id;
-    /**
-     *
-     * @OA\Property(
-     *   title="order_column",
-     *   type="integer",
-     *   description="The collection playlist item order",
-     *   minimum=0
-     * )
-     *
-     */
-    protected $order_column;
 
     /**
      *
