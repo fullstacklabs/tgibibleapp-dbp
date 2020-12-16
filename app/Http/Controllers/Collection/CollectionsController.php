@@ -5,11 +5,10 @@ namespace App\Http\Controllers\Collection;
 use App\Traits\AccessControlAPI;
 use App\Http\Controllers\APIController;
 use App\Models\Collection\Collection;
-use App\Models\Collection\CollectionPlaylist;
-use App\Http\Controllers\Playlist\PlaylistsController;
 use App\Models\Language\Language;
 use App\Traits\CheckProjectMembership;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CollectionsController extends APIController
 {
@@ -92,7 +91,7 @@ class CollectionsController extends APIController
 
         $featured = checkBoolean('featured') || empty($user);
         $limit        = (int) (checkParam('limit') ?? 25);
-        $sort_by    = checkParam('sort_by') ?? 'name';
+        $sort_by    = checkParam('sort_by') ?? 'order_column';
         $sort_dir   = checkParam('sort_dir') ?? 'asc';
         $iso = checkParam('iso');
 
@@ -123,54 +122,6 @@ class CollectionsController extends APIController
             ->orderBy($sort_by, $sort_dir)->paginate($limit);
 
         return $collections;
-    }
-
-    /**
-     * Store a newly created collection in storage.
-     *
-     *  @OA\Post(
-     *     path="/collections",
-     *     tags={"Collections"},
-     *     summary="Crete a collection",
-     *     operationId="v4_collections.store",
-     *     security={{"api_token":{}}},
-     *     @OA\RequestBody(required=true, description="Fields for User Collection Creation",
-     *           @OA\MediaType(mediaType="application/json",
-     *              @OA\Schema(
-     *                  @OA\Property(property="name", ref="#/components/schemas/Collection/properties/name"),
-     *              )
-     *          )
-     *     ),
-     *     @OA\Response(response=200, ref="#/components/responses/collection")
-     * )
-     *
-     * @return \Illuminate\Http\Response|array
-     */
-    public function store(Request $request)
-    {
-        // Validate Project / User Connection
-        $user = $request->user();
-        $user_is_member = $this->compareProjects($user->id, $this->key);
-
-        if (!$user_is_member) {
-            return $this->setStatusCode(401)->replyWithError(trans('api.projects_users_not_connected'));
-        }
-
-        $name = checkParam('name', true);
-        $language_id = checkParam('language_id', true);
-        $order_column = checkParam('order_column', true);
-
-        // create a collection
-        $collection = Collection::create([
-            'user_id'               => $user->id,
-            'language_id'           => $language_id,
-            'order_column'          => $order_column,
-            'name'                  => $name,
-            'featured'              => false,
-            // thumbnail_url is not fillable by user...
-        ]);
-
-        return $this->reply($collection);
     }
 
     /**
@@ -224,157 +175,14 @@ class CollectionsController extends APIController
             return $this->setStatusCode(404)->replyWithError('Collection Not Found');
         }
 
-        $show_details = checkBoolean('show_details');
-        $show_text = checkBoolean('show_text');
-        if ($show_text) {
-            $show_details = $show_text;
-        }
-
-        $playlist_controller = new PlaylistsController();
-        if ($show_details) {
-            foreach ($collection->playlists as $playlist) {
-                $playlist_data = $playlist_controller->getPlaylist($user, $playlist->playlist_id);
-                if ($show_text) {
-                    foreach ($playlist_data->items as $item) {
-                        $item->verse_text = $item->getVerseText();
-                    }
-                }
-                $playlist->playlist = $playlist_data;
-            }
+        foreach ($collection->playlists as $playlist) {
+            $playlist->name = $playlist->playlist->name;
+            $item_count = DB::connection('dbp_users')->table('playlist_items')->where('playlist_id', $playlist->playlist_id)->count();
+            $playlist->item_count = $item_count;
+            unset($playlist->playlist);
         }
 
         return $this->reply($collection);
-    }
-
-    /**
-     * Update the specified collection.
-     *
-     *  @OA\Put(
-     *     path="/collections/{collection_id}",
-     *     tags={"Collections"},
-     *     summary="Update a collection",
-     *     operationId="v4_collections.update",
-     *     security={{"api_token":{}}},
-     *     @OA\Parameter(name="collection_id", in="path", required=true, @OA\Schema(ref="#/components/schemas/Collection/properties/id")),
-     *     @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json",
-     *          @OA\Schema(
-     *              @OA\Property(property="name", ref="#/components/schemas/Collection/properties/name"),
-     *          )
-     *     )),
-     *     @OA\Response(response=200, ref="#/components/responses/collection")
-     * )
-     *
-     * @param  int $collection_id
-     * @param  string $days
-     *
-     * @return array|\Illuminate\Http\Response
-     */
-    public function update(Request $request, $collection_id)
-    {
-        // Validate Project / User Connection
-        $user = $request->user();
-        $user_is_member = $this->compareProjects($user->id, $this->key);
-
-        if (!$user_is_member) {
-            return $this->setStatusCode(401)->replyWithError(trans('api.projects_users_not_connected'));
-        }
-
-        $collection = Collection::where('user_id', $user->id)->where('id', $collection_id)->first();
-
-        if (!$collection) {
-            return $this->setStatusCode(404)->replyWithError('Collection Not Found');
-        }
-
-        $update_values = [];
-
-        $name = checkParam('name');
-        if ($name) {
-            $update_values['name'] = $name;
-        }
-
-        $suggested_start_date = checkParam('suggested_start_date');
-        if ($suggested_start_date) {
-            $update_values['suggested_start_date'] = $suggested_start_date;
-        }
-
-        $collection->update($update_values);
-
-        $playlists = checkParam('playlists');
-        $delete_playlists = checkBoolean('delete_playlists');
-
-        if ($playlists || $delete_playlists) {
-            $playlists_ids = [];
-            if (!$delete_playlists) {
-                $playlists_ids = explode(',', $playlists);
-                CollectionPlaylist::setNewOrder($playlists_ids);
-            }
-            $deleted_playlists = CollectionPlaylist::whereNotIn('id', $playlists_ids)->where('collection_id', $collection->id);
-            $playlists_ids = $deleted_playlists->pluck('playlist_id')->unique();
-            $collection_playlists = Playlist::whereIn('id', $playlists_ids);
-            $deleted_playlists->delete();
-            $collection_playlists->delete();
-        }
-
-        $collection = $this->getCollection($collection->id, $user);
-
-        return $this->reply($collection);
-    }
-
-    /**
-     * Remove the specified collection.
-     *
-     *  @OA\Delete(
-     *     path="/collections/{collection_id}",
-     *     tags={"Collections"},
-     *     summary="Delete a collection",
-     *     operationId="v4_collections.destroy",
-     *     security={{"api_token":{}}},
-     *     @OA\Parameter(name="collection_id", in="path", required=true, @OA\Schema(ref="#/components/schemas/Collection/properties/id")),
-     *     @OA\Response(
-     *         response=200,
-     *         description="successful operation",
-     *         @OA\MediaType(mediaType="application/json", @OA\Schema(type="string")),
-     *         @OA\MediaType(mediaType="application/xml",  @OA\Schema(type="string")),
-     *         @OA\MediaType(mediaType="text/x-yaml",      @OA\Schema(type="string")),
-     *         @OA\MediaType(mediaType="text/csv",      @OA\Schema(type="string"))
-     *     )
-     * )
-     *
-     * @param  int $collection_id
-     *
-     * @return array|\Illuminate\Http\Response
-     */
-    public function destroy(Request $request, $collection_id)
-    {
-        // Validate Project / User Connection
-        $user = $request->user();
-        $user_is_member = $this->compareProjects($user->id, $this->key);
-
-        if (!$user_is_member) {
-            return $this->setStatusCode(401)->replyWithError(trans('api.projects_users_not_connected'));
-        }
-
-        $collection = Collection::where('user_id', $user->id)->where('id', $collection_id)->first();
-
-        if (!$collection) {
-            return $this->setStatusCode(404)->replyWithError('Collection Not Found');
-        }
-
-        $collection->playlists()->delete();
-        $collection->delete();
-
-        return $this->reply('Collection Deleted');
-    }
-
-    private function validateCollection()
-    {
-        $validator = Validator::make(request()->all(), [
-            'name'              => 'required|string'
-        ]);
-        if ($validator->fails()) {
-            return ['errors' => $validator->errors()];
-        }
-        return true;
     }
 
     /**
@@ -431,65 +239,8 @@ class CollectionsController extends APIController
     {
         $collection = Collection::with('user')
             ->with('playlists')
-            ->where('collections.id', $collection_id)
-            ->select(['collections.*'])->first();
+            ->where('collections.id', $collection_id)->first();
 
         return $collection;
-    }
-
-    /**
-     * Store the newly created collection playlist.
-     *
-     *  @OA\Post(
-     *     path="/collections/{collection_id}/playlists",
-     *     tags={"Collections"},
-     *     summary="Create collection playlist",
-     *     operationId="v4_collection_playlists.store",
-     *     security={{"api_token":{}}},
-     *     @OA\Parameter(name="collection_id", in="path", required=true, @OA\Schema(ref="#/components/schemas/Collection/properties/id")),
-     *     @OA\Response(
-     *         response=200,
-     *         description="successful operation",
-     *         @OA\MediaType(mediaType="application/json", @OA\Schema(ref="#/components/schemas/v4_collection_playlists")),
-     *         @OA\MediaType(mediaType="application/xml",  @OA\Schema(ref="#/components/schemas/v4_collection_playlists")),
-     *         @OA\MediaType(mediaType="text/x-yaml",      @OA\Schema(ref="#/components/schemas/v4_collection_playlists")),
-     *         @OA\MediaType(mediaType="text/csv",         @OA\Schema(ref="#/components/schemas/v4_collection_playlists"))
-     *     )
-     * )
-     *
-     * @OA\Schema (
-     *   type="array",
-     *   schema="v4_collections_playlists",
-     *   title="User created collection playlists",
-     *   description="The v4 collection playlists creation response.",
-     *   @OA\Items(ref="#/components/schemas/CollectionPlaylist")
-     * )
-     * @return mixed
-     */
-    public function storePlaylist(Request $request, $collection_id)
-    {
-        $user = $request->user();
-        $user_is_member = $this->compareProjects($user->id, $this->key);
-        if (!$user_is_member) {
-            return $this->setStatusCode(401)->replyWithError(trans('api.projects_users_not_connected'));
-        }
-
-        $collection = Collection::where('user_id', $user->id)->where('id', $collection_id)->first();
-
-        if (!$collection) {
-            return $this->setStatusCode(404)->replyWithError('Collection Not Found');
-        }
-
-        $playlist_id  = intval(checkParam('playlist_id', true));
-        $order_column = intval(checkParam('order_column', true));
-
-        // create a collection playlist
-        $collection_playlist = CollectionPlaylist::create([
-          'collection_id' => $collection_id,
-          'playlist_id'   => $playlist_id,
-          'order_column'  => $order_column
-        ]);
-
-        return $this->reply($collection_playlist);
     }
 }

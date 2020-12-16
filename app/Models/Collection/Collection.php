@@ -3,6 +3,8 @@
 namespace App\Models\Collection;
 
 use Illuminate\Database\Eloquent\Model;
+use Spatie\EloquentSortable\Sortable;
+use Spatie\EloquentSortable\SortableTrait;
 use App\Models\User\User;
 
 /**
@@ -24,11 +26,14 @@ use App\Models\User\User;
  * )
  *
  */
-class Collection extends Model
+class Collection extends Model implements Sortable
 {
+    use SortableTrait;
+
     protected $connection = 'dbp_users';
     public $table         = 'collections';
-    protected $fillable   = ['user_id', 'name', 'language_id', 'order_column'];
+    protected $fillable   = ['user_id', 'name', 'language_id'];
+    protected $hidden     = ['order_column'];
 
     /**
      *
@@ -91,16 +96,6 @@ class Collection extends Model
      *
      */
     protected $thumbnail_url;
-    /**
-     *
-     * @OA\Property(
-     *   title="order_column",
-     *   type="string",
-     *   description="The order of this collection in user's collections"
-     * )
-     *
-     */
-    protected $order_column;
     /**
      *
      * @OA\Property(
