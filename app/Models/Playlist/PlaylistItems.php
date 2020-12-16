@@ -214,38 +214,41 @@ class PlaylistItems extends Model implements Sortable
             return 0;
         }
 
-        $bible_files = cacheRemember(
-            'bible_file_duration',
-            [$fileset->hash_id, $playlist_item->book_id, $playlist_item->chapter_start, $playlist_item->chapter_end],
+        $duration = cacheRemember(
+            'playlist_item_duration',
+            [$fileset->hash_id, $playlist_item->book_id, $playlist_item->chapter_start, $playlist_item->chapter_end, $playlist_item->verse_start, $playlist_item->verse_end],
             now()->addDay(),
             function () use ($fileset, $playlist_item) {
-                return BibleFile::with('streamBandwidth.transportStreamTS')->with('streamBandwidth.transportStreamBytes')->where([
+                $bible_files = BibleFile::with('streamBandwidth.transportStreamTS')->with('streamBandwidth.transportStreamBytes')->where([
                     'hash_id' => $fileset->hash_id,
                     'book_id' => $playlist_item->book_id,
                 ])
                     ->where('chapter_start', '>=', $playlist_item->chapter_start)
                     ->where('chapter_start', '<=', $playlist_item->chapter_end)
                     ->get();
-            }
-        );
-        $duration = 0;
-        if ($fileset->set_type_code === 'audio_stream' || $fileset->set_type_code === 'audio_drama_stream') {
-            foreach ($bible_files as $bible_file) {
-                $currentBandwidth = $bible_file->streamBandwidth->first();
-                $transportStream = sizeof($currentBandwidth->transportStreamBytes) ? $currentBandwidth->transportStreamBytes : $currentBandwidth->transportStreamTS;
-                if ($playlist_item->verse_end && $playlist_item->verse_start) {
-                    $transportStream = $this->processVersesOnTransportStream($playlist_item, $transportStream, $bible_file);
+
+                $duration = 0;
+                if ($fileset->set_type_code === 'audio_stream' || $fileset->set_type_code === 'audio_drama_stream') {
+                    foreach ($bible_files as $bible_file) {
+                        $currentBandwidth = $bible_file->streamBandwidth->first();
+                        $transportStream = sizeof($currentBandwidth->transportStreamBytes) ? $currentBandwidth->transportStreamBytes : $currentBandwidth->transportStreamTS;
+                        if ($playlist_item->verse_end && $playlist_item->verse_start) {
+                            $transportStream = $this->processVersesOnTransportStream($playlist_item, $transportStream, $bible_file);
+                        }
+
+                        foreach ($transportStream as $stream) {
+                            $duration += $stream->runtime;
+                        }
+                    }
+                } else {
+                    foreach ($bible_files as $bible_file) {
+                        $duration += $bible_file->duration ?? 180;
+                    }
                 }
 
-                foreach ($transportStream as $stream) {
-                    $duration += $stream->runtime;
-                }
+                return $duration;
             }
-        } else {
-            foreach ($bible_files as $bible_file) {
-                $duration += $bible_file->duration ?? 180;
-            }
-        }
+        );
 
         return $duration;
     }
@@ -342,20 +345,19 @@ class PlaylistItems extends Model implements Sortable
             $config = config('services.content');
             // if configured to use content server
             if (!empty($config['url'])) {
-
-              $fileset_id = $this['fileset_id'];
-              $cache_params = [$fileset_id];
-              $text_fileset = cacheRemember('playlist_item_fileset_content_verses', $cache_params, now()->addDay(), function () use ($fileset_id, $config) {
-                  $client = new Client();
-                  $res = $client->get($config['url'] . 'bibles/filesets/'.
-                    $fileset_id.'/verses?v=4&key=' . $config['key']);
-                  return collect(json_decode($res->getBody() . ''));
-              });
-              $hash_id = $text_fileset['hash_id'];
+                $fileset_id = $this['fileset_id'];
+                $cache_params = [$fileset_id];
+                $text_fileset = cacheRemember('playlist_item_fileset_content_verses', $cache_params, now()->addDay(), function () use ($fileset_id, $config) {
+                    $client = new Client();
+                    $res = $client->get($config['url'] . 'bibles/filesets/' .
+                        $fileset_id . '/verses?v=4&key=' . $config['key']);
+                    return collect(json_decode($res->getBody() . ''));
+                });
+                $hash_id = $text_fileset['hash_id'];
             } else {
-              $fileset = BibleFileset::where('id', $this['fileset_id'])->first();
-              $text_fileset = $fileset->bible->first()->filesets->where('set_type_code', 'text_plain')->first();
-              $hash_id = $text_fileset->hash_id;
+                $fileset = BibleFileset::where('id', $this['fileset_id'])->first();
+                $text_fileset = $fileset->bible->first()->filesets->where('set_type_code', 'text_plain')->first();
+                $hash_id = $text_fileset->hash_id;
             }
         }
 

@@ -2,11 +2,7 @@
 
 namespace Tests\Integration;
 
-use App\Models\User\AccessGroup;
 use App\Models\User\Key;
-use App\Models\User\PasswordReset;
-use App\Models\User\ProjectMember;
-use App\Models\User\ProjectOauthProvider;
 use App\Models\User\User;
 
 use Illuminate\Foundation\Testing\WithFaker;
@@ -48,7 +44,7 @@ class UserBookmarkRoutesTest extends ApiV4Test
         // test BooksTransformer / books() relationship
         $this->assertEquals('Psalms', $bookmarks[0]->book_name);
         // test model getVerseTextAttribute()
-        $this->assertEquals("\"Surely goodness and mercy shall follow me all the days of my life, and I shall dwell in the house of the LORD forever.\"", $bookmarks[0]->verse_text);
+        $this->assertEquals('"Surely goodness and mercy shall follow me all the days of my life, and I shall dwell in the house of the LORD forever."', $bookmarks[0]->verse_text);
     }
 
     /**
@@ -78,7 +74,7 @@ class UserBookmarkRoutesTest extends ApiV4Test
         // test BooksTransformer / books() relationship
         $this->assertEquals('Psalms', $bookmarks[0]->book_name);
         // test model getVerseTextAttribute()
-        $this->assertEquals("\"Surely goodness and mercy shall follow me all the days of my life, and I shall dwell in the house of the LORD forever.\"", $bookmarks[0]->verse_text);
+        $this->assertEquals('"Surely goodness and mercy shall follow me all the days of my life, and I shall dwell in the house of the LORD forever."', $bookmarks[0]->verse_text);
     }
 
 
@@ -108,15 +104,15 @@ class UserBookmarkRoutesTest extends ApiV4Test
         $this->assertEquals(0, count($bookmarks));
     }
 
-   /**
-     * @category V4_API
-     * @category Route Name: v4_bookmarks.store
-     * @category Route Path: https://api.dbp.test/users/{user_id}/bookmarks?v=4&key={key}
-     * @see      \App\Http\Controllers\User\BookmarksController::index
-     * @group    V4
-     * @group    travis
-     * @test
-     */
+    /**
+      * @category V4_API
+      * @category Route Name: v4_bookmarks.store
+      * @category Route Path: https://api.dbp.test/users/{user_id}/bookmarks?v=4&key={key}
+      * @see      \App\Http\Controllers\User\BookmarksController::index
+      * @group    V4
+      * @group    travis
+      * @test
+      */
     public function bookmarks()
     {
         // we have one key (test-key)
@@ -245,5 +241,4 @@ class UserBookmarkRoutesTest extends ApiV4Test
         $this->assertEquals(true, isset($result['error']['message'])); // expecting error.message field
         $this->assertEquals(422, isset($result['error']['status_code'])); // expecting error.status_code field
     }
-
 }

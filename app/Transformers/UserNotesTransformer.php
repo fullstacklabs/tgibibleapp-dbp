@@ -59,7 +59,7 @@ class UserNotesTransformer extends TransformerAbstract
                 $book_data = json_decode($res->getBody() . '');
                 $book = '';
                 if ($book_data && $book_data->data &&count($book_data->data)) {
-                  $book = $book_data->data[0]->name;
+                    $book = $book_data->data[0]->name;
                 }
                 return $book;
             });

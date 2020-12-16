@@ -2,8 +2,6 @@
 
 namespace Tests\Integration;
 
-use App\Http\Controllers\Playlist\PlaylistController;
-
 class PlaylistRoutesTest extends ApiV4Test
 {
 
@@ -20,7 +18,7 @@ class PlaylistRoutesTest extends ApiV4Test
     {
         // just hard code for now
         $test_playlist_id = 875;
-        $path = route('v4_playlists.show', array_merge($this->params, [        
+        $path = route('v4_playlists.show', array_merge($this->params, [
             'playlist_id'    => $test_playlist_id,
         ]));
         echo "\nTesting: $path";

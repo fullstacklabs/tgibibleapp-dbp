@@ -192,17 +192,17 @@ class BibleFileSetsController extends APIController
             $transportStream = sizeof($currentBandwidth->transportStreamBytes) ? $currentBandwidth->transportStreamBytes : $currentBandwidth->transportStreamTS;
             // create temporary fileset holder
             $fileset = $bible_file->fileset;
-            $hls_item = array(
+            $hls_item = [
                 'type'          => 'hls',
                 'chapter_start' => $bible_file->chapter_start,
                 'chapter_end'   => $bible_file->chapter_end,
-                'subitems'      => array(),
-            );
+                'subitems'      => [],
+            ];
             foreach ($transportStream as $stream_position => $stream) {
-                $hls_subitem = array(
+                $hls_subitem = [
                     'duration'      => $stream->runtime,
                     'position'      => $stream_position,
-                );
+                ];
                 if (isset($stream->timestamp)) {
                     $hls_subitem['bytes']  = $stream->bytes;
                     $hls_subitem['offset'] = $stream->offset;
@@ -227,7 +227,7 @@ class BibleFileSetsController extends APIController
         $hls_items   = [];
         foreach ($bible_files as $bible_file) {
             $fileset          = $bible_file->fileset;
-            $hls_items[]      = array(
+            $hls_items[]      = [
                 'type'          => 'mp3',
                 'chapter_start' => $bible_file->chapter_start,
                 'chapter_end'   => $bible_file->chapter__end,
@@ -236,7 +236,7 @@ class BibleFileSetsController extends APIController
                 'asset_id'      => $fileset->asset_id,
                 'path'          => $fileset->bible->first()->id,
                 'file_name'     => $bible_file->file_name,
-            );
+            ];
         }
         return $hls_items;
     }
@@ -582,7 +582,7 @@ class BibleFileSetsController extends APIController
       $download)
     {
         $playlist_entry = '';
-        $playlist_entry .= "\n#EXTINF:" . $hls_item['duration'] . "," . $item_id;
+        $playlist_entry .= "\n#EXTINF:" . $hls_item['duration'] . ',' . $item_id;
         if (isset($hls_item['bytes'])) {
             $playlist_entry .= "\n#EXT-X-BYTERANGE:" . $hls_item['bytes'] . '@'
               . $hls_item['offset'];
@@ -612,10 +612,10 @@ class BibleFileSetsController extends APIController
       &$playlist_items, &$durations, $transaction_id, $item, $download)
     {
         // probably don't need position here...
-        $fields = array('duration', 'position', 'bytes', 'offset', 'fileset_id',
-          'asset_id', 'file_name', 'path');
+        $fields = ['duration', 'position', 'bytes', 'offset', 'fileset_id',
+          'asset_id', 'file_name', 'path'];
         $content_config = config('services.content');
-        foreach($hls_items as $hls_item) {
+        foreach ($hls_items as $hls_item) {
             // per type processing
             if ($hls_item['type'] === 'hls') {
                 // mutate subitems if needed
@@ -633,17 +633,16 @@ class BibleFileSetsController extends APIController
                         $subitems = array_splice($subitems, 1);
                         if ($hls_item['chapter_start'] === $item->chapter_start) {
                             $subitems = array_splice($subitems, $item->verse_start - 1);
-                        } else
-                        if ($hls_item['chapter_start'] === $item->chapter_end) {
+                        } elseif ($hls_item['chapter_start'] === $item->chapter_end) {
                             $subitems = array_splice($subitems, 0, $item->verse_end);
                         }
                     }
                 }
                 // process remaining subitems
-                foreach($subitems as $subitem) {
+                foreach ($subitems as $subitem) {
                     $patched_item = $hls_item;
-                    foreach($fields as $f) {
-                      $patched_item[$f] = $subitem[$f];
+                    foreach ($fields as $f) {
+                        $patched_item[$f] = $subitem[$f];
                     }
                     $this->getHLSPlaylistItemText($patched_item, $signed_files,
                       $playlist_items, $durations, $item->id, $transaction_id,
@@ -657,5 +656,4 @@ class BibleFileSetsController extends APIController
             }
         }
     }
-
 }

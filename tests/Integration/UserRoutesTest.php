@@ -148,7 +148,7 @@ class UserRoutesTest extends ApiV4Test
     public function updateUser()
     {
         global $new_user_data;
-        $this->markTestIncomplete("The project ID provided is not associated with your developer key");
+        $this->markTestIncomplete('The project ID provided is not associated with your developer key');
         $path = route('v4_user.update', array_merge([
           'user_id' => $new_user_data['id'],
           'project_id' => $new_user_data['project_id']
@@ -226,7 +226,7 @@ class UserRoutesTest extends ApiV4Test
      */
     public function users()
     {
-        $this->markTestIncomplete("Permissions mess with delete phase");
+        $this->markTestIncomplete('Permissions mess with delete phase');
         $key = Key::with('user.projectMembers')->where('key', $this->key)->first();
         // the default test-key doesn't seem to have any project members
         // 2=Admin,4=no record...3=developer
@@ -244,7 +244,7 @@ class UserRoutesTest extends ApiV4Test
         $project = $key->user->projectMembers->whereIn('role_id', [2,4])->first();
         $project_id = 14321; // DEV Digital Bible Platform
         if ($project) {
-          $project_id = $project->project_id;
+            $project_id = $project->project_id;
         }
 
         $path = route('v4_user.index', Arr::add($this->params, 'project_id', $project_id));
@@ -420,7 +420,7 @@ class UserRoutesTest extends ApiV4Test
      */
     public function notes()
     {
-        $this->markTestIncomplete("Getting 500s, seems FK related");
+        $this->markTestIncomplete('Getting 500s, seems FK related');
         $key = Key::where('key', $this->key)->first();
         $path = route('v4_notes.index', Arr::add($this->params, 'user_id', $key->user_id));
         echo "\nTesting: $path";
@@ -471,7 +471,7 @@ class UserRoutesTest extends ApiV4Test
      */
     public function bookmarks()
     {
-        $this->markTestIncomplete("Getting 500s");
+        $this->markTestIncomplete('Getting 500s');
         $key = Key::where('key', $this->key)->first();
 
         $path = route('v4_bookmarks.index', Arr::add($this->params, 'user_id', $key->user_id));

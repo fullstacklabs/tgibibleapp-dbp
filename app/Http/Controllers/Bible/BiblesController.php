@@ -283,11 +283,11 @@ class BiblesController extends APIController
           ->where('bibles.id', '=', $bible_id)
           ->join('bible_fileset_connections as connection', 'connection.bible_id', 'bibles.id')
           ->join('bible_filesets as filesets', function ($join) {
-            $join->on('filesets.hash_id', '=', 'connection.hash_id');
+              $join->on('filesets.hash_id', '=', 'connection.hash_id');
           })
           ->where('filesets.set_type_code', 'text_plain')
           ->join('bible_verses as bible_verses', function ($join) {
-            $join->on('connection.hash_id', '=', 'bible_verses.hash_id');
+              $join->on('connection.hash_id', '=', 'bible_verses.hash_id');
           })
           ->where('bible_verses.verse_text', 'like', '%' . $query . '%')
           ->select(['bible_books.book_id', 'chapter', 'verse_start', 'verse_end']);
@@ -302,11 +302,11 @@ class BiblesController extends APIController
           ->leftjoin('books', 'books.id', 'bible_books.book_id')
           ->join('bible_fileset_connections as connection', 'connection.bible_id', 'bible_books.bible_id')
           ->join('bible_filesets as filesets', function ($join) {
-            $join->on('filesets.hash_id', '=', 'connection.hash_id');
+              $join->on('filesets.hash_id', '=', 'connection.hash_id');
           })
           ->where('filesets.set_type_code', 'text_plain')
           ->join('bible_verses as bible_verses', function ($join) {
-            $join->on('connection.hash_id', '=', 'bible_verses.hash_id')
+              $join->on('connection.hash_id', '=', 'bible_verses.hash_id')
               ->where('bible_verses.book_id', '=', DB::raw('bible_books.book_id'));
           })
           ->select(['bibles.versification', 'bible_books.book_id',
@@ -314,8 +314,8 @@ class BiblesController extends APIController
             'bible_books.name']);
         $bible = Bible::where('id', $bible_id)->first();
         $biblebooks = $bible->books()->get();
-        $testament_audiosets = array();
-        foreach($biblebooks as $bb) {
+        $testament_audiosets = [];
+        foreach ($biblebooks as $bb) {
             $testament = $bb->book->book_testament;
             $book_id = $bb->book_id;
             $audio_fileset_types = collect([
@@ -334,37 +334,37 @@ class BiblesController extends APIController
                 return $item;
             })->toArray();
             if (!isset($testament_audiosets[$book_id])) {
-                $testament_audiosets[$book_id] = array();
+                $testament_audiosets[$book_id] = [];
             }
             $testament_audiosets[$book_id][$testament] = array_values($available_filesets);
         }
 
         // one level of nesting by book could save some more bandwidth
         // saves about 700k (4.9mb => 4.2mb)
-        $compressed = array();
-        $books = array();
-        foreach($q->get() as $row) {
-          $book_key = $row->book_id . '_'. $row->book_testament . '_'. $row->name;
-          if (!isset($books[$book_key])) {
-            $books[$book_key] = array(
+        $compressed = [];
+        $books = [];
+        foreach ($q->get() as $row) {
+            $book_key = $row->book_id . '_'. $row->book_testament . '_'. $row->name;
+            if (!isset($books[$book_key])) {
+                $books[$book_key] = [
               'book_id'   => $row->book_id,
               'name'      => $row->name,
               'testament' => $row->book_testament,
-              'verses'    => array()
-            );
-          }
-          $books[$book_key]['verses'][] = array(
+              'verses'    => []
+            ];
+            }
+            $books[$book_key]['verses'][] = [
             $row->chapter,
             $row->verse_start,
             $row->verse_end,
             $row->verse_text,
-          );
+          ];
         }
-        $wrap = array(
+        $wrap = [
           'versification'  => $bible->versification,
           'audio_filesets' => $testament_audiosets,
           'books'          => array_values($books), // drop unique keying
-        );
+        ];
         return $this->reply($wrap);
     }
 
@@ -472,14 +472,14 @@ class BiblesController extends APIController
     {
         $books = BibleBook::where('name', 'like', '%'.$query.'%')->select(['bible_id', 'book_id'])->get();
         // expose bible_id
-        $map = array();
-        foreach($books as $book) {
-          $book->setHidden([])->setVisible(['bible_id', 'book_id']);
-          // group this way to minimize bandwidth for large result sets
-          if (!isset($map[$book->bible_id])) {
-            $map[$book->bible_id] = array();
-          }
-          $map[$book->bible_id][] = $book->book_id;
+        $map = [];
+        foreach ($books as $book) {
+            $book->setHidden([])->setVisible(['bible_id', 'book_id']);
+            // group this way to minimize bandwidth for large result sets
+            if (!isset($map[$book->bible_id])) {
+                $map[$book->bible_id] = [];
+            }
+            $map[$book->bible_id][] = $book->book_id;
         }
         return $this->reply($map);
     }
@@ -495,10 +495,10 @@ class BiblesController extends APIController
             ->where('bible_filesets.set_type_code', 'text_plain')
             ->where('connection.bible_id', $bible->id)
             ->first();
-              if (!$fileset) {
-                  return '';
-              }
-              $verses = BibleVerse::withVernacularMetaData($bible)
+        if (!$fileset) {
+            return '';
+        }
+        $verses = BibleVerse::withVernacularMetaData($bible)
             ->where('hash_id', $fileset->hash_id)
             ->where('bible_verses.book_id', $book_id)
             ->where('verse_start', $verse_start)
@@ -1014,7 +1014,8 @@ class BiblesController extends APIController
     }
 
     // is this a good name for this?
-    public function getFilesetVernacularMetaData($bible_id, $book_id, $testament) {
+    public function getFilesetVernacularMetaData($bible_id, $book_id, $testament)
+    {
         // testament is a set_size_code
         // we maybe able to get testament via book_id
 
@@ -1032,15 +1033,16 @@ class BiblesController extends APIController
         });
         $available_filesets = $fileset_types->map(
           function ($fileset) use ($audio_filesets, $testament) {
-            return $this->getFileset($audio_filesets, $fileset, $testament);
-        })->filter(function ($item) {
-            return $item;
-        })->toArray();
+              return $this->getFileset($audio_filesets, $fileset, $testament);
+          })->filter(function ($item) {
+              return $item;
+          })->toArray();
 
         return $this->reply(collect(['text_fileset' => $text_fileset, 'audio_filesets' => array_values($available_filesets)]));
     }
 
-    public function getAudio($bible_id) {
+    public function getAudio($bible_id)
+    {
         // save the db server the query(s)
         $bible = cacheRemember('bible_translate', [$bible_id], now()->addDay(), function () use ($bible_id) {
             return Bible::whereId($bible_id)->first();
@@ -1048,10 +1050,10 @@ class BiblesController extends APIController
         $audio_fileset_types = collect(['audio_stream', 'audio_drama_stream', 'audio', 'audio_drama']);
         $bible_audio_filesets = $bible->filesets->whereIn('set_type_code', $audio_fileset_types);
 
-        return $this->reply(array(
+        return $this->reply([
             'language'=>$bible->language->name,
             'audio'=>$bible_audio_filesets,
-        ));
+        ]);
     }
 
     private function getAudioFilesetData($results, $bible, $book, $chapter, $type, $name, $download = false, $secondary_type, $secondary_name, $get_secondary = false)
@@ -1182,12 +1184,12 @@ class BiblesController extends APIController
         } else {
             $map = cacheRemember('bible_exist', [$bible_id], now()->addDay(),
               function () use ($bible_id, $content_config) {
-                $client = new Client();
-                $res = $client->get($content_config['url'] . 'bibles/'.
+                  $client = new Client();
+                  $res = $client->get($content_config['url'] . 'bibles/'.
                       $bible_id.'/name/'.$GLOBALS['i18n_id'].'?v=4&key=' . $content_config['key']);
-                $map = json_decode($res->getBody() . '', true);
-                return $map;
-            });
+                  $map = json_decode($res->getBody() . '', true);
+                  return $map;
+              });
             if ($map['error']) {
                 return $this->setStatusCode(404)->replyWithError('Bible not found');
             }

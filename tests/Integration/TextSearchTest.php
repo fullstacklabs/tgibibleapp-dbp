@@ -21,8 +21,8 @@ class TextSearchTest extends ApiV4Test
     public function nonMatchingSearchResultsReturnsEmpty()
     {
         $bible_verse = false;
-        while(!$bible_verse) {
-          $bible_verse = BibleVerse::with('fileset')->where('id', random_int(1, BibleVerse::count()))->first();
+        while (!$bible_verse) {
+            $bible_verse = BibleVerse::with('fileset')->where('id', random_int(1, BibleVerse::count()))->first();
         }
         $this->params['asset_id']     = $bible_verse->fileset->asset_id;
         $this->params['fileset_id']   = $bible_verse->fileset->id;
@@ -46,8 +46,8 @@ class TextSearchTest extends ApiV4Test
     public function v4SwaggerForTextSearch()
     {
         $bible_verse = false;
-        while(!$bible_verse) {
-          $bible_verse = BibleVerse::with('fileset')->where('id', random_int(1, BibleVerse::count()))->first();
+        while (!$bible_verse) {
+            $bible_verse = BibleVerse::with('fileset')->where('id', random_int(1, BibleVerse::count()))->first();
         }
         $word = $this->selectSearchableWord($bible_verse);
         $this->params['asset_id'] = $bible_verse->fileset->asset_id;
@@ -76,8 +76,8 @@ class TextSearchTest extends ApiV4Test
     {
         $this->params['v'] = 2;
         $bible_verse = false;
-        while(!$bible_verse) {
-          $bible_verse = BibleVerse::with('fileset')->where('id', random_int(1, BibleVerse::count()))->first();
+        while (!$bible_verse) {
+            $bible_verse = BibleVerse::with('fileset')->where('id', random_int(1, BibleVerse::count()))->first();
         }
         $word = $this->selectSearchableWord($bible_verse);
         $this->params['asset_id'] = $bible_verse->fileset->asset_id;
@@ -114,8 +114,8 @@ class TextSearchTest extends ApiV4Test
     {
         $this->params['v'] = 2;
         $bible_verse = false;
-        while(!$bible_verse) {
-          $bible_verse = BibleVerse::with('fileset')->where('id', random_int(1, BibleVerse::count()))->first();
+        while (!$bible_verse) {
+            $bible_verse = BibleVerse::with('fileset')->where('id', random_int(1, BibleVerse::count()))->first();
         }
         $word = $this->selectSearchableWord($bible_verse);
 
@@ -201,5 +201,4 @@ class TextSearchTest extends ApiV4Test
         $this->assertEmpty($results['plans']);
         $this->assertEmpty($results['playlists']);
     }
-
 }

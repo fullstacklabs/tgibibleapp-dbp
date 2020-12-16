@@ -3,7 +3,6 @@
 namespace App\Transformers;
 
 use App\Models\User\Study\Bookmark;
-use League\Fractal\TransformerAbstract;
 use GuzzleHttp\Client;
 
 class UserBookmarksTransformer extends BaseTransformer
@@ -34,7 +33,8 @@ class UserBookmarksTransformer extends BaseTransformer
      * @param $bookmark
      * @return array
      */
-    public function transformForV2(Bookmark $bookmark) {
+    public function transformForV2(Bookmark $bookmark)
+    {
         return [
             'id'                   => (string) $bookmark->id,
             'user_id'              => (string) $bookmark->user_id,
@@ -86,7 +86,8 @@ class UserBookmarksTransformer extends BaseTransformer
      * @param Bookmark $bookmark
      * @return array
      */
-    public function transformForV4(Bookmark $bookmark) {
+    public function transformForV4(Bookmark $bookmark)
+    {
         // no book relationship?
         if (!isset($bookmark->book->name)) {
             // likely remote content set up
@@ -97,19 +98,19 @@ class UserBookmarksTransformer extends BaseTransformer
                 $book_name = cacheRemember('book_name_data',
                   [$bookmark->bible_id, $bookmark->book_id], now()->addDay(),
                   function () use ($bookmark, $content_config) {
-                    $client = new Client();
-                    $res = $client->get($content_config['url'] . 'bibles/' .
+                      $client = new Client();
+                      $res = $client->get($content_config['url'] . 'bibles/' .
                        $bookmark->bible_id . '/book/' . $bookmark->book_id .
                        '?v=4&key=' . $content_config['key']);
-                    $result = json_decode($res->getBody() . '', true);
-                    if ($result && $result['data'] && count($result['data'])) {
-                      return $result['data'][0]['name'];
-                    }
-                });
+                      $result = json_decode($res->getBody() . '', true);
+                      if ($result && $result['data'] && count($result['data'])) {
+                          return $result['data'][0]['name'];
+                      }
+                  });
             }
         } else {
-             // can use relationship to get content locally
-             $book_name = optional($bookmark->book)->name;
+            // can use relationship to get content locally
+            $book_name = optional($bookmark->book)->name;
         }
         return [
           'id' => (int) $bookmark->id,

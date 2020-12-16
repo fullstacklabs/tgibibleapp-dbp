@@ -25,39 +25,36 @@ class ContentServiceProvider extends ServiceProvider
                 if ($book_id) {
                     // validate bible_id and book_id exists
                     $result = cacheRemember('bibles_book_existence',
-                      [$value, $book_id], now()->addDay(), function ()
-                      use ($value, $book_id, $content_config, $client) {
-                        try {
-                            $res = $client->get($content_config['url'] .
+                      [$value, $book_id], now()->addDay(), function () use ($value, $book_id, $content_config, $client) {
+                          try {
+                              $res = $client->get($content_config['url'] .
                                'bibles/' . $value . '/book/'. $book_id .
                                '?v=4&key=' . $content_config['key'],
                                ['http_errors' => false]);
-                            return json_decode($res->getBody() . '', true);
-                        } catch (\GuzzleHttp\Exception\RequestException $e) {
-                            return array('error' => 'request exception');
-                        }
-                    });
+                              return json_decode($res->getBody() . '', true);
+                          } catch (\GuzzleHttp\Exception\RequestException $e) {
+                              return ['error' => 'request exception'];
+                          }
+                      });
                     if (isset($result['error'])) {
                         $valid = false;
-                    } else
-                    if (isset($result['data']) && !count($result['data'])) {
+                    } elseif (isset($result['data']) && !count($result['data'])) {
                         // book missing
                         $valid = false;
                     }
                 } else {
                     // validate (only) bible_id exists
                     $result = cacheRemember('bibles_existence', [$value],
-                      now()->addDay(), function ()
-                      use ($value, $content_config, $client) {
-                        try {
-                            $res = $client->get($content_config['url'] . 'bibles/' . $value .
+                      now()->addDay(), function () use ($value, $content_config, $client) {
+                          try {
+                              $res = $client->get($content_config['url'] . 'bibles/' . $value .
                                '/name/'. $GLOBALS['i18n_id'] . '?v=4&key=' . $content_config['key'],
                                ['http_errors' => false]);
-                            return json_decode($res->getBody() . '', true);
-                        } catch (\GuzzleHttp\Exception\RequestException $e) {
-                            return array('error' => 'request exception');
-                        }
-                    });
+                              return json_decode($res->getBody() . '', true);
+                          } catch (\GuzzleHttp\Exception\RequestException $e) {
+                              return ['error' => 'request exception'];
+                          }
+                      });
                     if (isset($result['error'])) {
                         // bible missing
                         $valid = false;

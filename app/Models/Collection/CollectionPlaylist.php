@@ -2,7 +2,10 @@
 
 namespace App\Models\Collection;
 
+use App\Models\Playlist\Playlist;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\EloquentSortable\Sortable;
+use Spatie\EloquentSortable\SortableTrait;
 
 /**
  * App\Models\CollectionPlaylist
@@ -21,11 +24,14 @@ use Illuminate\Database\Eloquent\Model;
  *     title="CollectionPlaylist"
  * )
  */
-class CollectionPlaylist extends Model
+class CollectionPlaylist extends Model implements Sortable
 {
+    use SortableTrait;
+
     protected $connection = 'dbp_users';
     public $table         = 'collection_playlists';
-    protected $fillable   = ['collection_id', 'playlist_id', 'order_column'];
+    protected $fillable   = ['collection_id', 'playlist_id'];
+    protected $hidden     = ['order_column', 'created_at', 'updated_at', 'collection_id', 'id'];
 
     /**
      *
@@ -49,28 +55,11 @@ class CollectionPlaylist extends Model
      *
      */
     protected $collection_id;
+
     /**
-     *
-     * @OA\Property(
-     *   title="playlist_id",
-     *   type="integer",
-     *   description="The playlist id",
-     *   minimum=0
-     * )
-     *
+     * @OA\Property(ref="#/components/schemas/Playlist/properties/id")
      */
     protected $playlist_id;
-    /**
-     *
-     * @OA\Property(
-     *   title="order_column",
-     *   type="integer",
-     *   description="The collection playlist item order",
-     *   minimum=0
-     * )
-     *
-     */
-    protected $order_column;
 
     /**
      *
@@ -95,4 +84,9 @@ class CollectionPlaylist extends Model
      * @public Carbon|null $updated_at
      */
     protected $updated_at;
+
+    public function playlist()
+    {
+        return $this->belongsTo(Playlist::class);
+    }
 }
