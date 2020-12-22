@@ -33,9 +33,9 @@ class SyncPlaylistsCollections extends Command
     public function __construct()
     {
         parent::__construct();
-        $this->bible_id = 'ENGESV'; // should be ENGGID
-        $this->filesets = ['NT' => 'ENGESVN2SA', 'OT' => 'ENGESVO2SA'];
-        $this->user_id = 1255627; // my userid, the FK enforces this to be a valid user...
+        $this->bible_id = 'ENGKJV'; // should be ENGGID
+        $this->filesets = ['NT' => 'ENGKJVN2SA', 'OT' => 'ENGKJVO2SA'];
+        $this->user_id = 1255575; // my userid, the FK enforces this to be a valid user...
     }
 
     public function createPlaylistItem($playlist_id, $book_id, $chapter, $verse_start, $verse_end)
@@ -85,27 +85,16 @@ class SyncPlaylistsCollections extends Command
 
     public function createPlaylist($collection_id, $name, $language_id = 6414)
     {
-        // find playlist
-        $playlist = DB::connection('dbp_users')->table('user_playlists')
-            ->where('name', '=', $name)->where('user_id', '=', $this->user_id)
-            ->where('language_id', '=', $language_id)->get();
-
-        if (!$playlist->count()) {
-            echo "Creating playlist [$name]\n";
-            $id = Playlist::insertGetId([
-                'name'        => $name,
-                'featured'    => true,
-                'user_id'     => $this->user_id,
-                'draft'       => 0,
-                'language_id' => $language_id,
-            ]);
-            $this->createPlaylistCollection($collection_id, $id);
-            return $id;
-        }
-
-        $playlist_array = $playlist->toArray();
-        $this->createPlaylistCollection($collection_id, $playlist_array[0]->id);
-        return $playlist_array[0]->id;
+        echo "Creating playlist [$name]\n";
+        $id = Playlist::insertGetId([
+            'name'        => $name,
+            'featured'    => true,
+            'user_id'     => $this->user_id,
+            'draft'       => 0,
+            'language_id' => $language_id,
+        ]);
+        $this->createPlaylistCollection($collection_id, $id);
+        return $id;
     }
 
     /**
